@@ -1,0 +1,9 @@
+:root { --radius: 10px; }
+body { margin: 0; font-family: Inter, "Noto Sans Bengali", system-ui, sans-serif; background: var(--nx-background); color: var(--nx-text); }
+.layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.sidebar { background: var(--nx-sidebar); border-right: 1px solid var(--nx-border); padding: 16px; }
+.nav button { display: block; width: 100%; text-align: left; padding: 8px 10px; border: 0; background: none; color: var(--nx-text); border-radius: var(--radius); cursor: pointer; }
+.nav button[aria-current="page"] { background: var(--nx-card); color: var(--nx-primary); }
+.card { background: var(--nx-card); border: 1px solid var(--nx-border); border-radius: var(--radius); padding: 16px; }
+@media (prefers-reduced-motion: no-preference) { * { transition: background-color .15s, color .15s, border-color .15s; } }
+@media (max-width: 720px) { .layout { grid-template-columns: 1fr; } .sidebar { display: none; } }

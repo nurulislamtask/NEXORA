@@ -1,8 +1,8 @@
+node_modules/
+dist/
 .env
+src-tauri/target/
+src-tauri/gen/
+*.key
 *.jks
-*.keystore
 key.properties
-build/
-.dart_tool/
-*.g.dart
-.flutter-plugins*

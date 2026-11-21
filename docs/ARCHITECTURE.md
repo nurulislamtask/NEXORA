@@ -1,10 +1,8 @@
-# Architecture
-**Stack:** Flutter/Dart, Riverpod, go_router, Drift (SQLite), supabase_flutter, flutter_secure_storage, flutter_local_notifications. Clean architecture, feature-first: `lib/features/<feature>/{domain,data,presentation}`, shared `lib/core`, `lib/data/local`.
-
-**Offline-first sync:** every write hits Drift first, sets `dirty=true`, enqueues a `SyncOutbox` row. Pusher sends upserts keyed by client UUID (idempotent) with `version`. Puller fetches rows with `updated_at > cursor` per table. Server trigger bumps `version`/`updated_at`. Conflict: if remote version > base version on a dirty row, keep both — remote wins in place, local copy saved as a new row (`notes.conflict_of`) — never silently discard.
-
-**Security:** RLS default-deny, `user_id = auth.uid()` on all tables; private storage bucket namespaced by uid; only anon key in client; tokens in secure storage.
-
-**Updates:** `app_versions` (per platform, public read) → `evaluateUpdate()`; mandatory only if installed < minimum. Windows/macOS: needs an updater (e.g. Sparkle/WinSparkle or MSIX) — decision pending. Android: APK download + system installer prompt; iOS: App Store/TestFlight only.
-
-**Roadmap:** 1 schema+skeleton (done) → 2 auth + shell/nav + themes → 3 tasks/notes + editor → 4 sync engine → 5 projects/calendar/habits/pages → 6 sticky-note windows (desktop_multi_window) → 7 backup/restore → 8 notifications, updater, installers → 9 tests, release.
+# Architecture (Tauri 2 migration)
+- **UI:** React 19 + strict TS + Vite + Tailwind; Motion for animation (respect `prefers-reduced-motion`); Lucide icons. Feature-first folders under `src/features/*`; shared logic in `src/core`.
+- **Local data:** SQLite via `tauri-plugin-sql` with migrations in `src-tauri/migrations`. Local-first: every write commits locally with `dirty=1` plus a `sync_outbox` row. Clipboard history is local-only and never synced.
+- **Sync:** push outbox (idempotent by client UUID + version), pull `updated_at > cursor`. Decisions come from `src-tauri/src/sync/conflict.rs`: remote wins in place and a differing local edit is kept as a conflict copy; edits beat deletes.
+- **Cloud:** Supabase Postgres with RLS default-deny (`user_id = auth.uid()`), private storage bucket namespaced by uid; client holds only the anon key.
+- **Updates:** Tauri updater with signed artifacts from GitHub Releases (`latest.json`). `core/update/policy.ts` only classifies optional vs mandatory; it never installs. Mandatory is reserved for security/compatibility and always user-visible.
+- **Platform notes:** Windows clipboard monitor via Win32 `AddClipboardFormatListener` (Rust, planned). Android cannot monitor the clipboard in the background; sticky-note windows are desktop-only. Linux clipboard differs on X11/Wayland.
+- **Roadmap:** P1 shell/themes/animation → P2 auth, tasks, notes, search → P3 sticky notes, pages, projects, calendar, habits, clipboard, notifications → P4 sync/backup → P5 platform installers → P6 updater/release.

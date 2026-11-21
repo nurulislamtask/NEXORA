@@ -1,40 +1,20 @@
-# Triggered by tags like v1.0.0. Desktop/Android jobs are drafted but UNTESTED (no Flutter in the authoring environment).
+# DRAFT, never run. Needs secrets: TAURI_SIGNING_PRIVATE_KEY(+_PASSWORD), SUPABASE_URL/ANON_KEY; Android signing secrets for APK/AAB.
 name: Release
 on: {push: {tags: ['v*.*.*']}}
 permissions: {contents: write}
 jobs:
-  android:
-    runs-on: ubuntu-latest
+  desktop:
+    strategy: {matrix: {os: [windows-latest, macos-latest, ubuntu-22.04]}}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: {distribution: temurin, java-version: 17}
-      - uses: subosito/flutter-action@v2
-        with: {channel: stable}
-      - run: flutter pub get && dart run build_runner build --delete-conflicting-outputs && flutter test
-      # Requires secrets: ANDROID_KEYSTORE_B64, ANDROID_KEY_PROPERTIES, SUPABASE_URL, SUPABASE_ANON_KEY
-      - run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > android/app/release.jks
-          echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
-          flutter build apk --release --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-          flutter build appbundle --release --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-      - uses: actions/upload-artifact@v4
-        with: {name: android, path: "build/app/outputs/**/*.{apk,aab}"}
-  windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with: {channel: stable}
-      - run: flutter config --enable-windows-desktop; flutter pub get; dart run build_runner build --delete-conflicting-outputs; flutter test; flutter build windows --release
-      # TODO: wrap build/windows/x64/runner/Release with Inno Setup for the installer EXE
-      - uses: actions/upload-artifact@v4
-        with: {name: windows, path: build/windows/x64/runner/Release}
-  publish:
-    needs: [android, windows]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-      - run: find . -type f \( -name '*.apk' -o -name '*.aab' \) -exec sha256sum {} + > SHA256SUMS.txt
-      - uses: softprops/action-gh-release@v2
-        with: {generate_release_notes: true, files: "**/*.apk\n**/*.aab\nSHA256SUMS.txt"}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - uses: dtolnay/rust-toolchain@stable
+      - if: matrix.os == 'ubuntu-22.04'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: npm install && npm test
+      - uses: tauri-apps/tauri-action@v0
+        env: {GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}", TAURI_SIGNING_PRIVATE_KEY: "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}", TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}"}
+        with: {tagName: "${{ github.ref_name }}", releaseName: "NEXORA ${{ github.ref_name }}", releaseDraft: true, includeUpdaterJson: true}
+  # android: TODO after `tauri android init` has been run locally and committed (src-tauri/gen/android).
