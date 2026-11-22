@@ -1,6 +1,6 @@
-# Manual build of unsigned desktop installers; artifacts are attached to the run. No secrets needed.
+# Triggered by pushing a tag build-*; build of unsigned desktop installers; artifacts are attached to the run. No secrets needed.
 name: Build desktop
-on: workflow_dispatch
+on: {push: {tags: ['build-*']}}
 jobs:
   desktop:
     strategy: {fail-fast: false, matrix: {os: [windows-latest, ubuntu-22.04, macos-latest]}}
