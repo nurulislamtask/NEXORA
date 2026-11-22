@@ -123,3 +123,11 @@ test('autosave debounces, flush saves latest, no lost edit', async () => {
   a.schedule('a'); a.schedule('ab'); assert.deepEqual(saved, []); fire!(); await a.flush(); assert.deepEqual(saved, ['ab']);
   a.schedule('abc'); await a.flush(); assert.deepEqual(saved, ['ab', 'abc']);
 });
+
+import { dayBounds, fromLocalInput, greetingKey, toLocalInput } from '../src/core/data/dates.ts';
+test('date helpers are local-time correct', () => {
+  const b = dayBounds(new Date(2026, 5, 15, 23, 30)); assert.equal(b.today, '2026-06-15');
+  assert.equal(new Date(b.dayStartIso).getHours(), 0); assert.equal(new Date(b.dayEndIso).getDate(), 16);
+  assert.equal(toLocalInput(fromLocalInput('2026-06-15T08:05')), '2026-06-15T08:05'); assert.equal(fromLocalInput(''), null); assert.equal(toLocalInput('garbage'), '');
+  assert.deepEqual([5, 12, 20].map(greetingKey), ['home.goodMorning', 'home.goodAfternoon', 'home.goodEvening']);
+});

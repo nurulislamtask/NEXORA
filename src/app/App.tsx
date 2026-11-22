@@ -1,28 +1,53 @@
 import { useEffect, useState } from 'react';
-import { BUILT_IN_THEMES, DEFAULT_THEME_ID, applyTheme } from '../core/theme/themes.ts';
+import { applyCurrentTheme, updateSettings, useSettings, watchSystemTheme } from './store.ts';
+import { I18nProvider, useT } from './i18n.tsx';
+import { RuntimeProvider, useRuntime, useSyncStatus } from './runtime.tsx';
+import { Icon, ToastProvider, useToast } from './components/ui.tsx';
+import { AuthPage } from './pages/AuthPage.tsx';
+import { Dashboard } from './pages/Dashboard.tsx';
+import { TasksPage } from './pages/TasksPage.tsx';
+import { NotesPage } from './pages/NotesPage.tsx';
+import { SettingsPage } from './pages/SettingsPage.tsx';
+import { dueReminders, markReminderFired } from '../core/data/tasks.ts';
+import type { TaskViewName } from '../core/data/tasks.ts';
 
-const NAV = ['Home', 'My Day', 'Tasks', 'Notes', 'Calendar', 'Habits', 'Settings'] as const;
-const KEY = 'nexora.theme';
+type Page = 'home' | 'my-day' | 'tasks' | 'notes' | 'settings';
+const NAV: { id: Page; icon: string }[] = [{ id: 'home', icon: 'home' }, { id: 'my-day', icon: 'sun' }, { id: 'tasks', icon: 'tasks' }, { id: 'notes', icon: 'notes' }, { id: 'settings', icon: 'settings' }];
 
-/** Phase-1 shell: navigation + working theme switcher. Feature screens are NOT implemented yet. */
-export function App() {
-  const [themeId, setThemeId] = useState(() => localStorage.getItem(KEY) ?? DEFAULT_THEME_ID);
-  const [page, setPage] = useState<(typeof NAV)[number]>('Home');
+function Reminders() {
+  const { ctx } = useRuntime(); const toast = useToast(); const t = useT();
   useEffect(() => {
-    const th = BUILT_IN_THEMES.find((x) => x.id === themeId) ?? BUILT_IN_THEMES[0]!;
-    applyTheme(th); localStorage.setItem(KEY, th.id);
-  }, [themeId]);
-  return (
-    <div className="layout">
-      <aside className="sidebar"><h2>NEXORA</h2>
-        <nav className="nav" aria-label="Main">{NAV.map((n) => (
-          <button key={n} aria-current={n === page ? 'page' : undefined} onClick={() => setPage(n)}>{n}</button>))}</nav></aside>
-      <main style={{ padding: 24 }}><h1>{page}</h1>
-        {page === 'Settings' ? (
-          <div className="card"><label>Theme{' '}
-            <select value={themeId} onChange={(e) => setThemeId(e.target.value)}>
-              {BUILT_IN_THEMES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label></div>
-        ) : <div className="card">Not implemented yet.</div>}
-      </main>
-    </div>);
+    const tick = () => { void (async () => {
+      for (const r of await dueReminders(ctx, new Date().toISOString())) {
+        await markReminderFired(ctx, r.id); toast(`${t('tasks.reminder')}: ${r.title}`);
+        if ('Notification' in window && Notification.permission === 'granted') new Notification('NEXORA', { body: r.title });
+      }
+    })(); };
+    tick(); const iv = setInterval(tick, 15_000); return () => clearInterval(iv);
+  }, [ctx, toast, t]);
+  return null;
+}
+function SyncBadge() {
+  const t = useT(); const s = useSyncStatus(); const { sync } = useRuntime();
+  return <button className={`sync-badge ${s.status}`} onClick={() => { void sync?.sync(); }} title={s.lastError ?? ''} aria-label={t(`sync.${s.status}`)}><i />{t(`sync.${s.status}`)}</button>;
+}
+function Shell() {
+  const t = useT(); const collapsed = useSettings().sidebarCollapsed;
+  const [page, setPage] = useState<Page>('home');
+  const go = (p: Page) => setPage(p);
+  const body = page === 'home' ? <Dashboard go={(p) => go(p)} /> : page === 'notes' ? <NotesPage /> : page === 'settings' ? <SettingsPage /> : <TasksPage key={page} initialView={(page === 'my-day' ? 'my-day' : 'all') as TaskViewName} />;
+  return (<div className={`layout${collapsed ? ' collapsed' : ''}`}>
+    <aside className="sidebar" aria-label={t('nav.main')}>
+      <div className="row between"><span className="brand">{collapsed ? 'N' : 'NEXORA'}</span><button className="icon-btn" onClick={() => updateSettings({ sidebarCollapsed: !collapsed })} aria-label={t('nav.toggle')}><Icon name="menu" /></button></div>
+      <nav className="nav">{NAV.map((n) => <button key={n.id} aria-current={n.id === page ? 'page' : undefined} onClick={() => go(n.id)} title={t(`nav.${n.id}`)}><Icon name={n.icon} /><span>{t(`nav.${n.id}`)}</span></button>)}</nav>
+      <div className="grow" /><SyncBadge /></aside>
+    <main key={page} className="page">{body}</main>
+    <nav className="bottom-nav" aria-label={t('nav.main')}>{NAV.filter((n) => n.id !== 'my-day').map((n) => <button key={n.id} aria-current={n.id === page ? 'page' : undefined} onClick={() => go(n.id)}><Icon name={n.icon} /><span>{t(`nav.${n.id}`)}</span></button>)}</nav>
+    <Reminders />
+  </div>);
+}
+
+export function App() {
+  useEffect(() => { applyCurrentTheme(); return watchSystemTheme(); }, []);
+  return (<I18nProvider><ToastProvider><RuntimeProvider login={<AuthPage />}><Shell /></RuntimeProvider></ToastProvider></I18nProvider>);
 }
