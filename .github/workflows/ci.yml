@@ -27,5 +27,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          export PGPASSWORD=pw; P="psql -h localhost -U postgres -v ON_ERROR_STOP=1 -q"
+          export PGPASSWORD=pw; P="psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -q"
+          for i in $(seq 1 30); do pg_isready -h 127.0.0.1 -U postgres && break; sleep 2; done; sleep 3
           for f in supabase/tests/00_stub_supabase.sql supabase/migrations/*.sql supabase/tests/rls_test.sql; do $P -f $f; done
