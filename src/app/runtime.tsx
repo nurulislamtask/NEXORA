@@ -18,7 +18,7 @@ export const RT = createContext<Runtime | null>(null);
 export const useRuntime = (): Runtime => { const r = useContext(RT); if (!r) throw new Error('Runtime not ready'); return r; };
 
 type Phase = { k: 'booting' } | { k: 'error'; msg: string } | { k: 'login' } | { k: 'blocked'; uid: string } | { k: 'ready'; rt: Runtime };
-interface Boot { ctx: Ctx; auth: AuthService | null; client: ReturnType<typeof createClient> | null }
+interface Boot { ctx: Ctx; auth: AuthService | null; client: SbClient | null }
 export const AuthGate = createContext<{ auth: AuthService; onSignedIn(u: AuthUser): void } | null>(null);
 export const useAuthGate = (): { auth: AuthService; onSignedIn(u: AuthUser): void } => { const g = useContext(AuthGate); if (!g) throw new Error('No auth gate'); return g; };
 
@@ -50,7 +50,7 @@ export function RuntimeProvider({ children, login }: { children: ReactNode; logi
         if (!CLOUD_CONFIGURED) { boot.current = { ctx, auth: null, client: null }; await enter(null, true, 'local-only'); return; }
         const storage = new EncryptedStorage(tauriKeyStore, localStorage);
         const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { storage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
-        const auth = new AuthService(client as unknown as AuthClient); boot.current = { ctx, auth, client };
+        const auth = new AuthService(client as unknown as AuthClient); boot.current = { ctx, auth, client: client as unknown as SbClient };
         const r = await auth.restore(await boundUser(ctx)); if (dead) return;
         if (r.kind === 'online') await enter(r.user, false); else if (r.kind === 'offline') await enter(null, true, r.userId); else setPhase({ k: 'login' });
       } catch (e) { if (!dead) setPhase({ k: 'error', msg: e instanceof Error ? e.message : String(e) }); }

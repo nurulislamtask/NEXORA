@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import './globals.ts';
 import { renderToString } from 'react-dom/server';
 import { openTestDb } from './nodeDb.ts';
@@ -19,7 +20,7 @@ import { CalendarPage } from '../../src/app/pages/CalendarPage.tsx';
 import { App } from '../../src/app/App.tsx';
 
 const rt = (): Runtime => ({ ctx: makeCtx(openTestDb()), workspaceId: 'w', user: { id: 'u', email: 'a@b.co', name: 'Ann' }, offlineSession: false, auth: null, sync: null, async signOut() {} });
-const wrap = (locale: 'en' | 'bn', node: unknown): string => { updateSettings({ locale }); return renderToString(<I18nProvider><ToastProvider><RT.Provider value={rt()}>{node}</RT.Provider></ToastProvider></I18nProvider>); };
+const wrap = (locale: 'en' | 'bn', node: ReactNode): string => { updateSettings({ locale }); return renderToString(<I18nProvider><ToastProvider><RT.Provider value={rt()}>{node}</RT.Provider></ToastProvider></I18nProvider>); };
 export const pages = {
   settings: (l: 'en' | 'bn') => wrap(l, <SettingsPage />), tasks: (l: 'en' | 'bn') => wrap(l, <TasksPage initialView="my-day" />), notes: (l: 'en' | 'bn') => wrap(l, <NotesPage />),
   dashboard: (l: 'en' | 'bn') => wrap(l, <Dashboard go={() => {}} />), editor: (l: 'en' | 'bn') => wrap(l, <RichEditor html="<p>x</p>" onChange={() => {}} />),
