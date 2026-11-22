@@ -5,4 +5,5 @@
 - Migrated to Tauri 2 + React: theme engine, update policy, local SQLite schema, Rust conflict resolver.
 
 ## Unreleased (migrate/tauri-react)
+- Added projects (progress, task assignment) and a month calendar (events, recurrence, due tasks). Local migration 0004.
 - Added habits, clipboard history (opt-in, local-only), backup and restore, global search and command palette, sticky notes, reminder snooze, keyboard shortcuts, EN/BN strings. Local migration 0003.

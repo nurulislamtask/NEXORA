@@ -14,6 +14,8 @@ import { Dashboard } from '../../src/app/pages/Dashboard.tsx';
 import { RichEditor } from '../../src/app/components/RichEditor.tsx';
 import { HabitsPage } from '../../src/app/pages/HabitsPage.tsx';
 import { ClipboardPage } from '../../src/app/pages/ClipboardPage.tsx';
+import { ProjectsPage } from '../../src/app/pages/ProjectsPage.tsx';
+import { CalendarPage } from '../../src/app/pages/CalendarPage.tsx';
 import { App } from '../../src/app/App.tsx';
 
 const rt = (): Runtime => ({ ctx: makeCtx(openTestDb()), workspaceId: 'w', user: { id: 'u', email: 'a@b.co', name: 'Ann' }, offlineSession: false, auth: null, sync: null, async signOut() {} });
@@ -23,5 +25,6 @@ export const pages = {
   dashboard: (l: 'en' | 'bn') => wrap(l, <Dashboard go={() => {}} />), editor: (l: 'en' | 'bn') => wrap(l, <RichEditor html="<p>x</p>" onChange={() => {}} />),
   auth: (l: 'en' | 'bn') => { updateSettings({ locale: l }); return renderToString(<I18nProvider><AuthGate.Provider value={{ auth: null as never, onSignedIn() {} }}><AuthPage /></AuthGate.Provider></I18nProvider>); },
   habits: (l: 'en' | 'bn') => wrap(l, <HabitsPage />), clipboard: (l: 'en' | 'bn') => wrap(l, <ClipboardPage />),
+  projects: (l: 'en' | 'bn') => wrap(l, <ProjectsPage />), calendar: (l: 'en' | 'bn') => wrap(l, <CalendarPage />),
   app: (l: 'en' | 'bn') => { updateSettings({ locale: l }); return renderToString(<App />); },
 };

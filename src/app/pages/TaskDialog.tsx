@@ -1,3 +1,5 @@
+import { listProjects } from '../../core/data/projects.ts';
+import { useQuery } from '../hooks.ts';
 import { useEffect, useState } from 'react';
 import { addSubtask, archiveTask, createTask, getTask, getTaskReminder, listSubtasks, removeSubtask, setTaskReminder, toggleSubtask, trashTask, updateTask, type Subtask, type TaskInput } from '../../core/data/tasks.ts';
 import { listTags } from '../../core/data/tags.ts';
@@ -9,19 +11,20 @@ import { Dialog, useToast } from '../components/ui.tsx';
 const RULES = ['', 'FREQ=DAILY', 'FREQ=WEEKLY', 'FREQ=MONTHLY', 'FREQ=YEARLY'] as const;
 export function TaskDialog({ taskId, onClose }: { taskId: string | null; onClose(): void }) {
   const t = useT(); const { ctx, workspaceId } = useRuntime(); const toast = useToast();
-  const [f, setF] = useState({ title: '', description: '', priority: 0, due: '', remind: '', rule: '', labels: '', fav: false, myDay: false, archived: false, trashed: false });
+  const projects = useQuery(ctx, () => listProjects(ctx, new Date().toISOString()), []);
+  const [f, setF] = useState({ title: '', description: '', priority: 0, project: '', due: '', remind: '', rule: '', labels: '', fav: false, myDay: false, archived: false, trashed: false });
   const [subs, setSubs] = useState<Subtask[]>([]); const [newSub, setNewSub] = useState(''); const [known, setKnown] = useState<string[]>([]); const [id, setId] = useState(taskId);
   useEffect(() => { void (async () => {
     setKnown((await listTags(ctx)).map((x) => x.name)); if (!id) return;
     const k = await getTask(ctx, id); if (!k) return;
     const lbl = (await ctx.db.all<{ name: string }>('SELECT t.name FROM task_tags l JOIN tags t ON t.id=l.tag_id WHERE l.task_id=? AND l.deleted_at IS NULL AND t.deleted_at IS NULL ORDER BY t.name', [id])).map((x) => x.name).join(', ');
-    setF({ title: k.title, description: k.description ?? '', priority: k.priority, due: toLocalInput(k.due_at), remind: toLocalInput(await getTaskReminder(ctx, id)), rule: k.recurrence_rule ?? '', labels: lbl, fav: k.is_favorite, myDay: k.is_my_day_date === localDate(new Date()), archived: !!k.archived_at, trashed: !!k.deleted_at });
+    setF({ title: k.title, description: k.description ?? '', priority: k.priority, project: k.project_id ?? '', due: toLocalInput(k.due_at), remind: toLocalInput(await getTaskReminder(ctx, id)), rule: k.recurrence_rule ?? '', labels: lbl, fav: k.is_favorite, myDay: k.is_my_day_date === localDate(new Date()), archived: !!k.archived_at, trashed: !!k.deleted_at });
     setSubs(await listSubtasks(ctx, id));
   })(); }, [ctx, id]);
   const refreshSubs = async (tid: string) => setSubs(await listSubtasks(ctx, tid));
   async function save() {
     try {
-      const input: TaskInput = { title: f.title, description: f.description || null, priority: f.priority, due_at: fromLocalInput(f.due), recurrence_rule: f.rule || null, is_favorite: f.fav, is_my_day_date: f.myDay ? localDate(new Date()) : null, labels: f.labels.split(',').map((s) => s.trim()).filter(Boolean) };
+      const input: TaskInput = { title: f.title, description: f.description || null, priority: f.priority, project_id: f.project || null, due_at: fromLocalInput(f.due), recurrence_rule: f.rule || null, is_favorite: f.fav, is_my_day_date: f.myDay ? localDate(new Date()) : null, labels: f.labels.split(',').map((s) => s.trim()).filter(Boolean) };
       if (f.rule && !input.due_at) throw new Error(t('tasks.recurNeedsDue'));
       const saved = id ? await updateTask(ctx, id, input) : await createTask(ctx, workspaceId, input);
       await setTaskReminder(ctx, saved.id, fromLocalInput(f.remind));
@@ -35,6 +38,7 @@ export function TaskDialog({ taskId, onClose }: { taskId: string | null; onClose
       <label>{t('tasks.title')}<input autoFocus value={f.title} maxLength={500} onChange={(e) => setF({ ...f, title: e.target.value })} /></label>
       <label>{t('tasks.description')}<textarea rows={3} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></label>
       <div className="row wrap">
+        <label>{t('projects.project')}<select value={f.project} onChange={(e) => setF({ ...f, project: e.target.value })}><option value="">{t('projects.none')}</option>{(projects.data ?? []).map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></label>
         <label>{t('tasks.priority')}<select value={f.priority} onChange={(e) => setF({ ...f, priority: Number(e.target.value) })}>{[0, 1, 2, 3, 4].map((p) => <option key={p} value={p}>{t(`priority.${p}`)}</option>)}</select></label>
         <label>{t('tasks.due')}<input type="datetime-local" value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} /></label>
         <label>{t('tasks.reminder')}<input type="datetime-local" value={f.remind} onChange={(e) => setF({ ...f, remind: e.target.value })} /></label>

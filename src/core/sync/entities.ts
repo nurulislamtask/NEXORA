@@ -9,6 +9,8 @@ export interface EntityDef {
 const e = (d: EntityDef): EntityDef => d;
 export const WORKSPACES = e({ name: 'workspaces', table: 'workspaces', keys: ['id'], cols: ['id', 'name', 'icon', 'color', 'description', 'created_at', 'deleted_at'], bool: [], json: [], conflict: 'prefer-live' });
 export const TAGS = e({ name: 'tags', table: 'tags', keys: ['id'], cols: ['id', 'name', 'color', 'created_at', 'deleted_at'], bool: [], json: [], conflict: 'prefer-live' });
+export const PROJECTS = e({ name: 'projects', table: 'projects', keys: ['id'], conflict: 'copy', cols: ['id', 'workspace_id', 'title', 'description', 'cover_path', 'icon', 'color', 'start_date', 'deadline', 'status', 'archived_at', 'created_at', 'deleted_at'], bool: [], json: [] });
+export const CALENDAR_EVENTS = e({ name: 'calendar_events', table: 'calendar_events', keys: ['id'], conflict: 'copy', cols: ['id', 'workspace_id', 'title', 'description', 'color', 'starts_at', 'ends_at', 'all_day', 'time_zone', 'recurrence_rule', 'created_at', 'deleted_at'], bool: ['all_day'], json: [] });
 export const TASKS = e({ name: 'tasks', table: 'tasks', keys: ['id'], searchKind: 'task', conflict: 'copy',
   cols: ['id', 'workspace_id', 'project_id', 'parent_task_id', 'title', 'description', 'priority', 'status', 'due_at', 'completed_at', 'recurrence_rule', 'is_favorite', 'is_my_day_date', 'sort_order', 'archived_at', 'created_at', 'deleted_at'],
   bool: ['is_favorite'], json: [] });
@@ -25,5 +27,5 @@ export const HABITS = e({ name: 'habits', table: 'habits', keys: ['id'], conflic
 export const HABIT_ENTRIES = e({ name: 'habit_entries', table: 'habit_entries', keys: ['id'], conflict: 'prefer-live', cols: ['id', 'habit_id', 'entry_date', 'value', 'created_at', 'deleted_at'], bool: [], json: [] });
 
 /** Dependency order: parents before children (push and pull both follow this). */
-export const SYNC_ORDER: readonly EntityDef[] = [WORKSPACES, TAGS, TASKS, SUBTASKS, TASK_TAGS, NOTES, NOTE_TAGS, REMINDERS, HABITS, HABIT_ENTRIES];
+export const SYNC_ORDER: readonly EntityDef[] = [WORKSPACES, TAGS, PROJECTS, TASKS, SUBTASKS, TASK_TAGS, NOTES, NOTE_TAGS, REMINDERS, HABITS, HABIT_ENTRIES, CALENDAR_EVENTS];
 export const entityByName = (n: string): EntityDef => { const d = SYNC_ORDER.find((x) => x.name === n); if (!d) throw new Error(`Unknown entity ${n}`); return d; };

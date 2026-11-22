@@ -69,3 +69,10 @@ mark { background: color-mix(in srgb, var(--nx-primary) 25%, transparent); color
 .palette-item { display: flex; justify-content: space-between; width: 100%; padding: 8px 10px; border: 0; background: none; border-radius: 8px; cursor: pointer; text-align: left; } .palette-item.on { background: var(--nx-sidebar); } .palette-item small { color: var(--nx-text-muted); }
 .reminders { position: fixed; top: 12px; right: 12px; display: grid; gap: 8px; z-index: 70; width: min(360px, calc(100vw - 24px)); } .reminder { display: grid; gap: 8px; border-left: 3px solid var(--nx-primary); animation: page-in .2s; }
 .sticky { min-height: 100vh; padding: 8px; display: grid; gap: 8px; align-content: start; } .sticky-bar { gap: 8px; } .sticky .editor { background: rgb(255 255 255 / .5); color: #1c1917; } .sticky .editable { min-height: 140px; }
+
+.progress { height: 8px; border-radius: 99px; background: var(--nx-sidebar); overflow: hidden; } .progress i { display: block; height: 100%; background: var(--nx-primary); transition: width .3s; } .chip.err { color: var(--nx-danger, #b91c1c); }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; } .cal-h { text-align: center; font-size: .8rem; color: var(--nx-text-muted); padding: 4px 0; }
+.cal-d { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 76px; padding: 4px 6px; border: 1px solid var(--nx-border); border-radius: 8px; background: var(--nx-surface, transparent); cursor: pointer; text-align: left; overflow: hidden; }
+.cal-d.other { opacity: .5; } .cal-d.today > span { background: var(--nx-primary); color: #fff; border-radius: 99px; padding: 0 6px; } .cal-d.sel { outline: 2px solid var(--nx-primary); }
+.cal-d small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .7rem; } .cal-d small.task { color: var(--nx-text-muted); }
+@media (max-width: 640px) { .cal-d { min-height: 52px; } .cal-d small { display: none; } }

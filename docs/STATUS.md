@@ -51,3 +51,7 @@ habit streaks and sync, backup create/validate/restore (checksum, merge and repl
 **Written, unverified (never compiled or run):** Rust `open_sticky` command and capabilities, migration 3 registration in `main.rs`, window/event Tauri APIs, command palette, reminder banner, clipboard watcher (reads clipboard only when the app gains focus and only if the user opted in), real UI interaction in a browser or Tauri webview.
 
 **Limitations:** no background clipboard monitor or OS notifications; clipboard history is local-only and excluded from sync and backups; sticky windows are desktop-only.
+
+## Addendum 2 — projects and calendar
+**Tested (61 Node tests, 3 time zones; `tsc` via local shims):** project progress/overdue/status/delete-keeps-tasks, task↔project assignment, calendar month grid, events + due tasks per day, multi-day and recurring events, validation, two-device sync of projects/events/tasks, SSR render of both pages (EN/BN), backup includes the new tables. Local migration 0004 registered in `main.rs` (uncompiled).
+**Unverified:** real interaction in the webview (calendar clicks, dialogs). Recurring events expand up to 400 occurrences from their start. Week starts on Sunday only. No drag-to-reschedule, no event reminders yet.

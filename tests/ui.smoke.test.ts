@@ -19,7 +19,7 @@ before(async () => {
 });
 
 test('every page server-renders in English and Bangla without throwing', () => {
-  for (const name of ['settings', 'tasks', 'notes', 'dashboard', 'editor', 'auth', 'app', 'habits', 'clipboard']) for (const l of ['en', 'bn'] as const) assert.ok(pages[name]!(l).length > 50, `${name}/${l}`);
+  for (const name of ['settings', 'tasks', 'notes', 'dashboard', 'editor', 'auth', 'app', 'habits', 'clipboard', 'projects', 'calendar']) for (const l of ['en', 'bn'] as const) assert.ok(pages[name]!(l).length > 50, `${name}/${l}`);
 });
 test('settings: all 14 themes offered, language switch reflected', () => {
   const en = pages['settings']!('en'); assert.equal((en.match(/role="radio"/g) ?? []).length, 14); assert.ok(en.includes('Appearance') && en.includes('Local only') === false);
@@ -39,4 +39,8 @@ test('new pages: clipboard shows privacy disclosure + opt-in, habits form, setti
   const c = pages['clipboard']!('en'); assert.ok(c.includes('OFF until you turn it on') && /type="checkbox"/.test(c) && !c.includes('Capture clipboard now'), 'capture controls hidden until enabled');
   assert.ok(pages['clipboard']!('bn').includes('ক্লিপবোর্ড')); const h = pages['habits']!('en'); assert.ok(h.includes('New habit') && h.includes('Every day'));
   const s = pages['settings']!('en'); assert.ok(s.includes('Create backup file') && s.includes('Restore from file') && s.includes('Snooze duration'));
+});
+test('projects and calendar pages render (EN/BN)', () => {
+  assert.ok(pages['projects']!('en').includes('Project name') && pages['projects']!('bn').includes('প্রজেক্ট'));
+  const c = pages['calendar']!('en'); assert.ok(c.includes('New event') && c.includes('role="grid"') && (c.match(/role="gridcell"/g) ?? []).length === 42);
 });

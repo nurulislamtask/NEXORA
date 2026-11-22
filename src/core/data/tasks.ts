@@ -7,12 +7,12 @@ import { nextOccurrence } from './recurrence.ts';
 import { REMINDERS, SUBTASKS, TASKS, TASK_TAGS } from '../sync/entities.ts';
 
 export interface Task {
-  id: string; workspace_id: string; title: string; description: string | null; priority: number; status: string;
+  id: string; workspace_id: string; project_id: string | null; title: string; description: string | null; priority: number; status: string;
   due_at: string | null; completed_at: string | null; recurrence_rule: string | null; is_favorite: boolean; is_my_day_date: string | null;
   archived_at: string | null; created_at: string; updated_at: string; deleted_at: string | null;
 }
 export interface TaskView extends Task { labels: Tag[]; subtasksTotal: number; subtasksDone: number }
-export interface TaskInput { title: string; description?: string | null; priority?: number; due_at?: string | null; recurrence_rule?: string | null; is_favorite?: boolean; is_my_day_date?: string | null; labels?: string[] }
+export interface TaskInput { title: string; description?: string | null; priority?: number; due_at?: string | null; recurrence_rule?: string | null; is_favorite?: boolean; is_my_day_date?: string | null; project_id?: string | null; labels?: string[] }
 
 const fromDb = (r: Row): Task => ({ ...(r as unknown as Task), is_favorite: Number(r['is_favorite']) === 1 });
 function validate(i: Partial<TaskInput>): void {
@@ -26,7 +26,7 @@ export async function getTask(ctx: Ctx, id: string): Promise<Task | null> { cons
 
 export async function createTask(ctx: Ctx, workspaceId: string, input: TaskInput): Promise<Task> {
   validate(input);
-  const row: Row = { id: ctx.uuid(), workspace_id: workspaceId, project_id: null, parent_task_id: null, title: input.title.trim(), description: input.description ?? null,
+  const row: Row = { id: ctx.uuid(), workspace_id: workspaceId, project_id: input.project_id ?? null, parent_task_id: null, title: input.title.trim(), description: input.description ?? null,
     priority: input.priority ?? 0, status: 'not_started', due_at: input.due_at ?? null, completed_at: null, recurrence_rule: input.recurrence_rule ?? null,
     is_favorite: input.is_favorite ?? false, is_my_day_date: input.is_my_day_date ?? null, sort_order: Date.now(), archived_at: null, created_at: ctx.now(), deleted_at: null, version: 0 };
   await putLocal(ctx, TASKS, row);

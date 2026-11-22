@@ -9,6 +9,8 @@ import { AuthPage } from './pages/AuthPage.tsx';
 import { Dashboard } from './pages/Dashboard.tsx';
 import { TasksPage } from './pages/TasksPage.tsx';
 import { NotesPage } from './pages/NotesPage.tsx';
+import { ProjectsPage } from './pages/ProjectsPage.tsx';
+import { CalendarPage } from './pages/CalendarPage.tsx';
 import { HabitsPage } from './pages/HabitsPage.tsx';
 import { ClipboardPage } from './pages/ClipboardPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
@@ -17,8 +19,8 @@ import { addClip } from '../core/data/clipboard.ts';
 import { shortcutAction } from '../core/shortcuts.ts';
 import type { TaskViewName } from '../core/data/tasks.ts';
 
-type Page = 'home' | 'my-day' | 'tasks' | 'notes' | 'habits' | 'clipboard' | 'settings';
-const NAV: { id: Page; icon: string }[] = [{ id: 'home', icon: 'home' }, { id: 'my-day', icon: 'sun' }, { id: 'tasks', icon: 'tasks' }, { id: 'notes', icon: 'notes' }, { id: 'habits', icon: 'check' }, { id: 'clipboard', icon: 'pin' }, { id: 'settings', icon: 'settings' }];
+type Page = 'home' | 'my-day' | 'tasks' | 'notes' | 'projects' | 'calendar' | 'habits' | 'clipboard' | 'settings';
+const NAV: { id: Page; icon: string }[] = [{ id: 'home', icon: 'home' }, { id: 'my-day', icon: 'sun' }, { id: 'tasks', icon: 'tasks' }, { id: 'notes', icon: 'notes' }, { id: 'projects', icon: 'folder' }, { id: 'calendar', icon: 'calendar' }, { id: 'habits', icon: 'check' }, { id: 'clipboard', icon: 'pin' }, { id: 'settings', icon: 'settings' }];
 
 /** Polls for due reminders (while the app is open). Each one stays visible until snoozed, completed or dismissed. */
 function Reminders() {
@@ -65,7 +67,7 @@ function Shell() {
   const pick = (target: PaletteTarget) => { setPalette(false); if ('command' in target) command(target.command); else go(target.page, target.openId); };
   void toast;
   const { page } = nav;
-  const body = page === 'home' ? <Dashboard go={(p) => go(p)} /> : page === 'notes' ? <NotesPage {...(nav.openId ? { openId: nav.openId } : {})} newSignal={nav.nonce} /> : page === 'settings' ? <SettingsPage /> : page === 'habits' ? <HabitsPage /> : page === 'clipboard' ? <ClipboardPage /> :
+  const body = page === 'home' ? <Dashboard go={(p) => go(p)} /> : page === 'notes' ? <NotesPage {...(nav.openId ? { openId: nav.openId } : {})} newSignal={nav.nonce} /> : page === 'settings' ? <SettingsPage /> : page === 'projects' ? <ProjectsPage openTasks={() => go('tasks')} /> : page === 'calendar' ? <CalendarPage openTask={(id) => go('tasks', id)} /> : page === 'habits' ? <HabitsPage /> : page === 'clipboard' ? <ClipboardPage /> :
     <TasksPage key={page} initialView={(page === 'my-day' ? 'my-day' : 'all') as TaskViewName} {...(nav.openId ? { openId: nav.openId } : {})} newSignal={nav.nonce} />;
   return (<div className={`layout${collapsed ? ' collapsed' : ''}`}>
     <aside className="sidebar" aria-label={t('nav.main')}>

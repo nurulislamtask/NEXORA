@@ -39,6 +39,7 @@ fn main() {
         Migration { version: 1, description: "local_schema", sql: include_str!("../migrations/0001_local_schema.sql"), kind: MigrationKind::Up },
         Migration { version: 2, description: "sync_and_features", sql: include_str!("../migrations/0002_sync_and_features.sql"), kind: MigrationKind::Up },
         Migration { version: 3, description: "habits_clipboard", sql: include_str!("../migrations/0003_habits_clipboard.sql"), kind: MigrationKind::Up },
+        Migration { version: 4, description: "projects_calendar", sql: include_str!("../migrations/0004_projects_calendar.sql"), kind: MigrationKind::Up },
     ];
     tauri::Builder::default()
         .plugin(Sql::default().add_migrations("sqlite:nexora.db", migrations).build())
