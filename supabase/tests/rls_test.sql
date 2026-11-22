@@ -15,3 +15,16 @@ do $$ begin
   exception when insufficient_privilege or foreign_key_violation then null; end;
 end $$;
 select 'RLS TESTS PASSED' as result;
+
+-- Account deletion removes only the caller's data.
+reset role; insert into workspaces (user_id,name) values ('00000000-0000-0000-0000-00000000000b','B-ws');
+select set_config('request.uid','00000000-0000-0000-0000-00000000000b',false); set role authenticated;
+select public.delete_my_account();
+reset role;
+do $$ begin
+  assert (select count(*) from auth.users where id='00000000-0000-0000-0000-00000000000b')=0, 'B not deleted';
+  assert (select count(*) from workspaces where user_id='00000000-0000-0000-0000-00000000000b')=0, 'B data not cascaded';
+  assert (select count(*) from workspaces where user_id='00000000-0000-0000-0000-00000000000a')=1, 'A data was touched';
+end $$;
+set role anon; do $$ begin begin perform public.delete_my_account(); raise exception 'anon could call'; exception when insufficient_privilege then null; end; end $$;
+reset role; select 'ACCOUNT DELETION TESTS PASSED' as result;

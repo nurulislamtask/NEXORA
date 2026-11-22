@@ -5,5 +5,6 @@ create function auth.uid() returns uuid language sql stable as $$ select nullif(
 create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint);
 create table storage.objects (id uuid default gen_random_uuid(), bucket_id text, name text);
 create function storage.foldername(n text) returns text[] language sql as $$ select string_to_array(n,'/') $$;
-create role anon nologin; create role authenticated nologin;
+do $$ begin create role anon nologin; exception when duplicate_object then null; end $$;
+do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$;
 grant usage on schema public, auth to anon, authenticated;
