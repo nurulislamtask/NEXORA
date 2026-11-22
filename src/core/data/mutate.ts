@@ -21,7 +21,12 @@ async function upsert(ctx: Ctx, def: EntityDef, row: Row, dirty: 0 | 1): Promise
 
 /** Local user edit: persist, mark dirty, and queue for sync (coalesced: one pending entry per record). */
 export async function putLocal(ctx: Ctx, def: EntityDef, row: Row, opts: { silent?: boolean } = {}): Promise<Row> {
-  const next: Row = { ...row, updated_at: ctx.now(), version: row['version'] ?? 0 };
+  // updated_at must strictly increase per record: the sync engine detects "edited while a push was in flight" by comparing it,
+  // and two writes inside the same millisecond would otherwise look identical and the second edit would be lost.
+  const prev = await getRow(ctx, def, row);
+  let stamp = ctx.now();
+  if (prev && typeof prev['updated_at'] === 'string' && stamp <= prev['updated_at']) stamp = new Date(Date.parse(prev['updated_at']) + 1).toISOString();
+  const next: Row = { ...row, updated_at: stamp, version: row['version'] ?? 0 };
   await ctx.db.transaction(async () => {
     await upsert(ctx, def, next, 1);
     const id = entityId(def, next);

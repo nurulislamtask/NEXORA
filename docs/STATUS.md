@@ -53,5 +53,5 @@ habit streaks and sync, backup create/validate/restore (checksum, merge and repl
 **Limitations:** no background clipboard monitor or OS notifications; clipboard history is local-only and excluded from sync and backups; sticky windows are desktop-only.
 
 ## Addendum 2 — projects and calendar
-**Tested (61 Node tests, 3 time zones; `tsc` via local shims):** project progress/overdue/status/delete-keeps-tasks, task↔project assignment, calendar month grid, events + due tasks per day, multi-day and recurring events, validation, two-device sync of projects/events/tasks, SSR render of both pages (EN/BN), backup includes the new tables. Local migration 0004 registered in `main.rs` (uncompiled).
+**Tested (62 Node tests, 3 time zones; LA run repeated 6x after a flaky-test fix; `tsc` via local shims):** project progress/overdue/status/delete-keeps-tasks, task↔project assignment, calendar month grid, events + due tasks per day, multi-day and recurring events, validation, two-device sync of projects/events/tasks, SSR render of both pages (EN/BN), backup includes the new tables. Local migration 0004 registered in `main.rs` (uncompiled).
 **Unverified:** real interaction in the webview (calendar clicks, dialogs). Recurring events expand up to 400 occurrences from their start. Week starts on Sunday only. No drag-to-reschedule, no event reminders yet.

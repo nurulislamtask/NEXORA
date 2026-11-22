@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { getRow } from '../src/core/data/mutate.ts';
 import assert from 'node:assert/strict';
 import { openTestDb } from './helpers/nodeDb.ts';
 import { MemoryRemote } from './helpers/memoryRemote.ts';
@@ -130,4 +131,9 @@ test('SupabaseRemote maps types, uses CAS on update, handles duplicate insert', 
   result = { data: [], error: null }; assert.deepEqual(await r.push(NOTES, row, 4), { kind: 'conflict', remote: null });
   result = { data: null, error: { code: '23514', message: 'check' } }; await assert.rejects(r.push(NOTES, row, 4), (e: SyncError) => e.retryable === false);
   result = { data: null, error: { message: 'Failed to fetch' } }; await assert.rejects(r.push(NOTES, row, 4), (e: SyncError) => e.retryable === true);
+});
+test('two writes in the same millisecond still get distinct updated_at (in-flight edit detection relies on it)', async () => {
+  const { ctx, ws } = await device(); const fixed = '2026-06-15T12:00:00.000Z'; const c2 = { ...ctx, now: () => fixed };
+  const t = await createTask(c2, ws, { title: 'a' }); const r1 = await getRow(c2, TASKS, { id: t.id }); await updateTask(c2, t.id, { title: 'b' }); const r2 = await getRow(c2, TASKS, { id: t.id });
+  assert.ok(String(r2!['updated_at']) > String(r1!['updated_at']));
 });
