@@ -43,7 +43,6 @@ fn main() {
     ];
     tauri::Builder::default()
         .plugin(Sql::default().add_migrations("sqlite:nexora.db", migrations).build())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![secret_get, secret_set, open_sticky])
         .run(tauri::generate_context!())

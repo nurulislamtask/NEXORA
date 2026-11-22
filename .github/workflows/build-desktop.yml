@@ -1,0 +1,27 @@
+# Manual build of unsigned desktop installers; artifacts are attached to the run. No secrets needed.
+name: Build desktop
+on: workflow_dispatch
+jobs:
+  desktop:
+    strategy: {fail-fast: false, matrix: {os: [windows-latest, ubuntu-22.04, macos-latest]}}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - uses: dtolnay/rust-toolchain@stable
+      - if: matrix.os == 'ubuntu-22.04'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev
+      - run: npm install
+      - run: npx tauri icon src-tauri/app-icon.png
+      - run: npm test
+      - run: npx tauri build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nexora-${{ matrix.os }}
+          path: |
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/bundle/**/*.deb
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.dmg

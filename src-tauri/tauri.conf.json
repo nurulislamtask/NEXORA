@@ -28,14 +28,6 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "createUpdaterArtifacts": true
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "REPLACE_WITH_OUTPUT_OF_tauri_signer_generate",
-      "endpoints": [
-        "https://github.com/nurulislamtask/NEXORA/releases/latest/download/latest.json"
-      ]
-    }
+    "createUpdaterArtifacts": false
   }
 }

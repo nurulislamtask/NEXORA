@@ -12,7 +12,6 @@
     "sql:allow-execute",
     "sql:allow-select",
     "sql:allow-close",
-    "updater:default",
     "process:allow-restart",
     "core:window:allow-set-always-on-top",
     "core:window:allow-outer-position",
