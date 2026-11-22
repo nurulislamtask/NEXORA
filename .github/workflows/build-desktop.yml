@@ -1,8 +1,9 @@
-# Triggered by pushing a tag build-*; build of unsigned desktop installers; artifacts are attached to the run. No secrets needed.
+# Runs when a commit message on migrate/tauri-react contains [build]; builds of unsigned desktop installers; artifacts are attached to the run. No secrets needed.
 name: Build desktop
-on: {push: {tags: ['build-*']}}
+on: {push: {branches: [migrate/tauri-react]}}
 jobs:
   desktop:
+    if: contains(github.event.head_commit.message, '[build]')
     strategy: {fail-fast: false, matrix: {os: [windows-latest, ubuntu-22.04, macos-latest]}}
     runs-on: ${{ matrix.os }}
     steps:
