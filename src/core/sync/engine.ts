@@ -24,7 +24,7 @@ async function dropOutbox(ctx: Ctx, def: EntityDef, row: Row): Promise<void> { a
 /** Saves the user's local version as a separate record so neither side's edit is lost. */
 async function makeConflictCopy(ctx: Ctx, def: EntityDef, local: Row, remoteId: string): Promise<void> {
   const copy: Row = { ...local, id: ctx.uuid(), version: 0, created_at: ctx.now() };
-  if ('title' in copy && typeof copy['title'] === 'string') copy['title'] = `${copy['title'] || ''} (conflict copy)`.trim();
+  for (const f of ['title', 'name']) if (f in copy && typeof copy[f] === 'string') copy[f] = `${copy[f] || ''} (conflict copy)`.trim();
   if (def.name === 'notes') copy['conflict_of'] = remoteId;
   if (def.name === 'tasks') copy['parent_task_id'] = null;
   await putLocal(ctx, def, copy);

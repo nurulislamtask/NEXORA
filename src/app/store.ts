@@ -1,13 +1,14 @@
 import { useSyncExternalStore } from 'react';
 import { BUILT_IN_THEMES, DEFAULT_THEME_ID, applyTheme } from '../core/theme/themes.ts';
 import type { Locale } from '../core/i18n/index.ts';
+import { DEFAULT_CLIP_SETTINGS, type ClipSettings } from '../core/data/clipboard.ts';
 
-export interface Settings { themeId: string; followSystem: boolean; radius: number; locale: Locale; sidebarCollapsed: boolean }
+export interface Settings { themeId: string; followSystem: boolean; radius: number; locale: Locale; sidebarCollapsed: boolean; snoozeMinutes: number; clipboard: ClipSettings; recentSearches: string[] }
 const KEY = 'nexora.settings.v1';
-const DEFAULTS: Settings = { themeId: DEFAULT_THEME_ID, followSystem: true, radius: 10, locale: 'en', sidebarCollapsed: false };
+const DEFAULTS: Settings = { themeId: DEFAULT_THEME_ID, followSystem: true, radius: 10, locale: 'en', sidebarCollapsed: false, snoozeMinutes: 10, clipboard: DEFAULT_CLIP_SETTINGS, recentSearches: [] };
 
 function load(): Settings {
-  try { const raw = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Settings>; return { ...DEFAULTS, ...raw, radius: Math.min(20, Math.max(0, Number(raw.radius ?? DEFAULTS.radius))) }; } catch { return DEFAULTS; }
+  try { const raw = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Settings>; return { ...DEFAULTS, ...raw, clipboard: { ...DEFAULT_CLIP_SETTINGS, ...(raw.clipboard ?? {}) }, radius: Math.min(20, Math.max(0, Number(raw.radius ?? DEFAULTS.radius))) }; } catch { return DEFAULTS; }
 }
 let state = load(); const subs = new Set<() => void>();
 export const getSettings = (): Settings => state;

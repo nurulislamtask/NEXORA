@@ -1,30 +1,50 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { listen } from '@tauri-apps/api/event';
 import { applyCurrentTheme, updateSettings, useSettings, watchSystemTheme } from './store.ts';
 import { I18nProvider, useT } from './i18n.tsx';
 import { RuntimeProvider, useRuntime, useSyncStatus } from './runtime.tsx';
 import { Icon, ToastProvider, useToast } from './components/ui.tsx';
+import { Palette, type PaletteTarget } from './components/Palette.tsx';
 import { AuthPage } from './pages/AuthPage.tsx';
 import { Dashboard } from './pages/Dashboard.tsx';
 import { TasksPage } from './pages/TasksPage.tsx';
 import { NotesPage } from './pages/NotesPage.tsx';
+import { HabitsPage } from './pages/HabitsPage.tsx';
+import { ClipboardPage } from './pages/ClipboardPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
-import { dueReminders, markReminderFired } from '../core/data/tasks.ts';
+import { dueReminders, markReminderFired, setTaskCompleted, snoozeReminder, type DueReminder } from '../core/data/tasks.ts';
+import { addClip } from '../core/data/clipboard.ts';
+import { shortcutAction } from '../core/shortcuts.ts';
 import type { TaskViewName } from '../core/data/tasks.ts';
 
-type Page = 'home' | 'my-day' | 'tasks' | 'notes' | 'settings';
-const NAV: { id: Page; icon: string }[] = [{ id: 'home', icon: 'home' }, { id: 'my-day', icon: 'sun' }, { id: 'tasks', icon: 'tasks' }, { id: 'notes', icon: 'notes' }, { id: 'settings', icon: 'settings' }];
+type Page = 'home' | 'my-day' | 'tasks' | 'notes' | 'habits' | 'clipboard' | 'settings';
+const NAV: { id: Page; icon: string }[] = [{ id: 'home', icon: 'home' }, { id: 'my-day', icon: 'sun' }, { id: 'tasks', icon: 'tasks' }, { id: 'notes', icon: 'notes' }, { id: 'habits', icon: 'check' }, { id: 'clipboard', icon: 'pin' }, { id: 'settings', icon: 'settings' }];
 
+/** Polls for due reminders (while the app is open). Each one stays visible until snoozed, completed or dismissed. */
 function Reminders() {
-  const { ctx } = useRuntime(); const toast = useToast(); const t = useT();
+  const { ctx } = useRuntime(); const t = useT(); const { snoozeMinutes } = useSettings(); const [due, setDue] = useState<DueReminder[]>([]); const notified = useRef(new Set<string>());
   useEffect(() => {
     const tick = () => { void (async () => {
-      for (const r of await dueReminders(ctx, new Date().toISOString())) {
-        await markReminderFired(ctx, r.id); toast(`${t('tasks.reminder')}: ${r.title}`);
-        if ('Notification' in window && Notification.permission === 'granted') new Notification('NEXORA', { body: r.title });
-      }
+      const list = await dueReminders(ctx, new Date().toISOString()); setDue(list);
+      for (const r of list) if (!notified.current.has(r.id)) { notified.current.add(r.id); if ('Notification' in window && Notification.permission === 'granted') new Notification('NEXORA', { body: r.title }); }
     })(); };
-    tick(); const iv = setInterval(tick, 15_000); return () => clearInterval(iv);
-  }, [ctx, toast, t]);
+    tick(); const iv = setInterval(tick, 15_000); const un = ctx.events.subscribe(tick); return () => { clearInterval(iv); un(); };
+  }, [ctx]);
+  if (!due.length) return null;
+  return (<div className="reminders" role="alert" aria-live="assertive">{due.map((r) => (
+    <div key={r.id} className="card reminder"><strong>{t('reminder.title')}</strong><span>{r.title}</span>
+      <span className="row wrap"><button className="btn" onClick={() => { notified.current.delete(r.id); void snoozeReminder(ctx, r.id, new Date(Date.now() + snoozeMinutes * 60_000).toISOString()).then(() => setDue((d) => d.filter((x) => x.id !== r.id))); }}>{t('reminder.snooze', { n: snoozeMinutes })}</button>
+        {r.target_id && <button className="btn" onClick={() => { void setTaskCompleted(ctx, r.target_id!, true).then(() => markReminderFired(ctx, r.id)); }}>{t('reminder.complete')}</button>}
+        <button className="btn" onClick={() => { void markReminderFired(ctx, r.id); }}>{t('reminder.dismiss')}</button></span></div>))}</div>);
+}
+/** Saves the clipboard when the window regains focus — ONLY if the user enabled clipboard history. No background monitoring. */
+function ClipboardWatcher() {
+  const { ctx } = useRuntime(); const { clipboard } = useSettings();
+  useEffect(() => {
+    if (!clipboard.enabled || clipboard.paused) return;
+    const on = () => { void navigator.clipboard.readText().then((tx) => addClip(ctx, tx, clipboard)).catch(() => {}); };
+    window.addEventListener('focus', on); return () => window.removeEventListener('focus', on);
+  }, [ctx, clipboard]);
   return null;
 }
 function SyncBadge() {
@@ -32,21 +52,33 @@ function SyncBadge() {
   return <button className={`sync-badge ${s.status}`} onClick={() => { void sync?.sync(); }} title={s.lastError ?? ''} aria-label={t(`sync.${s.status}`)}><i />{t(`sync.${s.status}`)}</button>;
 }
 function Shell() {
-  const t = useT(); const collapsed = useSettings().sidebarCollapsed;
-  const [page, setPage] = useState<Page>('home');
-  const go = (p: Page) => setPage(p);
-  const body = page === 'home' ? <Dashboard go={(p) => go(p)} /> : page === 'notes' ? <NotesPage /> : page === 'settings' ? <SettingsPage /> : <TasksPage key={page} initialView={(page === 'my-day' ? 'my-day' : 'all') as TaskViewName} />;
+  const t = useT(); const toast = useToast(); const { ctx } = useRuntime(); const collapsed = useSettings().sidebarCollapsed;
+  const [nav, setNav] = useState<{ page: Page; openId?: string; nonce: number }>({ page: 'home', nonce: 0 }); const [palette, setPalette] = useState(false);
+  const go = (page: Page, openId?: string) => setNav((n) => ({ page, ...(openId ? { openId } : {}), nonce: n.nonce }));
+  const command = (c: 'new-task' | 'new-note') => setNav((n) => ({ page: c === 'new-task' ? 'tasks' : 'notes', nonce: n.nonce + 1 }));
+  useEffect(() => {
+    const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+    const on = (e: KeyboardEvent) => { const a = shortcutAction(e, mac); if (!a) return; e.preventDefault(); if (a === 'palette') setPalette((v) => !v); else command(a === 'new-task' ? 'new-task' : 'new-note'); };
+    window.addEventListener('keydown', on); return () => window.removeEventListener('keydown', on);
+  }, []);
+  useEffect(() => { let un: (() => void) | undefined; void listen('nexora:data-changed', () => ctx.events.emit()).then((f) => { un = f; }).catch(() => {}); return () => un?.(); }, [ctx]);
+  const pick = (target: PaletteTarget) => { setPalette(false); if ('command' in target) command(target.command); else go(target.page, target.openId); };
+  void toast;
+  const { page } = nav;
+  const body = page === 'home' ? <Dashboard go={(p) => go(p)} /> : page === 'notes' ? <NotesPage {...(nav.openId ? { openId: nav.openId } : {})} newSignal={nav.nonce} /> : page === 'settings' ? <SettingsPage /> : page === 'habits' ? <HabitsPage /> : page === 'clipboard' ? <ClipboardPage /> :
+    <TasksPage key={page} initialView={(page === 'my-day' ? 'my-day' : 'all') as TaskViewName} {...(nav.openId ? { openId: nav.openId } : {})} newSignal={nav.nonce} />;
   return (<div className={`layout${collapsed ? ' collapsed' : ''}`}>
     <aside className="sidebar" aria-label={t('nav.main')}>
       <div className="row between"><span className="brand">{collapsed ? 'N' : 'NEXORA'}</span><button className="icon-btn" onClick={() => updateSettings({ sidebarCollapsed: !collapsed })} aria-label={t('nav.toggle')}><Icon name="menu" /></button></div>
+      <button className="btn" onClick={() => setPalette(true)}><Icon name="search" /><span>{t('common.search')}</span></button>
       <nav className="nav">{NAV.map((n) => <button key={n.id} aria-current={n.id === page ? 'page' : undefined} onClick={() => go(n.id)} title={t(`nav.${n.id}`)}><Icon name={n.icon} /><span>{t(`nav.${n.id}`)}</span></button>)}</nav>
       <div className="grow" /><SyncBadge /></aside>
     <main key={page} className="page">{body}</main>
-    <nav className="bottom-nav" aria-label={t('nav.main')}>{NAV.filter((n) => n.id !== 'my-day').map((n) => <button key={n.id} aria-current={n.id === page ? 'page' : undefined} onClick={() => go(n.id)}><Icon name={n.icon} /><span>{t(`nav.${n.id}`)}</span></button>)}</nav>
-    <Reminders />
+    <nav className="bottom-nav" aria-label={t('nav.main')}>{NAV.filter((n) => n.id !== 'my-day' && n.id !== 'clipboard').map((n) => <button key={n.id} aria-current={n.id === page ? 'page' : undefined} onClick={() => go(n.id)}><Icon name={n.icon} /><span>{t(`nav.${n.id}`)}</span></button>)}</nav>
+    {palette && <Palette onPick={pick} onClose={() => setPalette(false)} />}
+    <Reminders /><ClipboardWatcher />
   </div>);
 }
-
 export function App() {
   useEffect(() => { applyCurrentTheme(); return watchSystemTheme(); }, []);
   return (<I18nProvider><ToastProvider><RuntimeProvider login={<AuthPage />}><Shell /></RuntimeProvider></ToastProvider></I18nProvider>);

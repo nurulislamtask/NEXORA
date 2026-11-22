@@ -7,6 +7,7 @@ import { useRuntime } from '../runtime.tsx';
 import { useT } from '../i18n.tsx';
 import { Dialog, Empty, Icon, Skeleton, useToast } from '../components/ui.tsx';
 import { RichEditor } from '../components/RichEditor.tsx';
+import { openSticky, stickySupported } from '../sticky.ts';
 
 function NoteEditor({ noteId, onClose }: { noteId: string; onClose(): void }) {
   const t = useT(); const { ctx } = useRuntime(); const toast = useToast();
@@ -34,14 +35,18 @@ function NoteEditor({ noteId, onClose }: { noteId: string; onClose(): void }) {
   </Dialog>);
 }
 
-export function NotesPage() {
+export function NotesPage({ openId, newSignal }: { openId?: string; newSignal?: number }) {
   const t = useT(); const { ctx, workspaceId } = useRuntime(); const toast = useToast();
   const [view, setView] = useState<'active' | 'archived' | 'trash'>('active'); const [search, setSearch] = useState(''); const [color, setColor] = useState(''); const [tagId, setTagId] = useState(''); const [open, setOpen] = useState<string | null>(null); const [grid, setGrid] = useState(true);
+  useEffect(() => { if (openId) setOpen(openId); }, [openId]);
+  useEffect(() => { if (newSignal) void create(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newSignal]);
   const tags = useQuery(ctx, () => listTags(ctx), []);
   const q = useQuery(ctx, () => listNotes(ctx, { view, search, ...(color ? { color } : {}), ...(tagId ? { tagId } : {}) }), [view, search, color, tagId]);
+  const sticky = async () => { try { await openSticky(ctx, workspaceId); } catch { toast(t('sticky.failed'), 'err'); } };
   const create = async () => { try { setOpen((await createNote(ctx, workspaceId)).id); } catch (e) { toast(e instanceof Error ? e.message : String(e), 'err'); } };
   return (<div className="stack">
-    <div className="row between"><h1>{t('nav.notes')}</h1><button className="btn primary" onClick={() => { void create(); }}><Icon name="plus" /> {t('notes.new')}</button></div>
+    <div className="row between"><h1>{t('nav.notes')}</h1><span className="row">{stickySupported() && <button className="btn" onClick={() => { void sticky(); }}>{t('sticky.new')}</button>}<button className="btn primary" onClick={() => { void create(); }}><Icon name="plus" /> {t('notes.new')}</button></span></div>
     <div className="tabs" role="tablist">{(['active', 'archived', 'trash'] as const).map((v) => <button key={v} role="tab" aria-selected={view === v} className={view === v ? 'on' : ''} onClick={() => setView(v)}>{t(`notes.view.${v}`)}</button>)}</div>
     <div className="row wrap"><div className="search grow"><Icon name="search" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('common.search')} aria-label={t('common.search')} /></div>
       <select value={color} onChange={(e) => setColor(e.target.value)} aria-label={t('notes.color')}><option value="">{t('notes.anyColor')}</option>{NOTE_COLORS.map((c) => <option key={c} value={c}>{c}</option>)}</select>

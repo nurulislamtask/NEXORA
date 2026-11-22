@@ -20,6 +20,10 @@ export const NOTES = e({ name: 'notes', table: 'notes', keys: ['id'], searchKind
 export const NOTE_TAGS = e({ name: 'note_tags', table: 'note_tags', keys: ['note_id', 'tag_id'], conflict: 'prefer-live', cols: ['note_id', 'tag_id', 'created_at', 'deleted_at'], bool: [], json: [] });
 export const REMINDERS = e({ name: 'reminders', table: 'reminders', keys: ['id'], conflict: 'copy', cols: ['id', 'target_type', 'target_id', 'title', 'remind_at', 'repeat_rule', 'snoozed_until', 'fired_at', 'created_at', 'deleted_at'], bool: [], json: [] });
 
+export const HABITS = e({ name: 'habits', table: 'habits', keys: ['id'], conflict: 'copy', cols: ['id', 'name', 'description', 'category', 'color', 'icon', 'frequency_rule', 'reminder_time', 'archived_at', 'created_at', 'deleted_at'], bool: [], json: [] });
+/** Entry ids are deterministic (habit+date) so two devices marking the same day converge instead of violating the unique index. */
+export const HABIT_ENTRIES = e({ name: 'habit_entries', table: 'habit_entries', keys: ['id'], conflict: 'prefer-live', cols: ['id', 'habit_id', 'entry_date', 'value', 'created_at', 'deleted_at'], bool: [], json: [] });
+
 /** Dependency order: parents before children (push and pull both follow this). */
-export const SYNC_ORDER: readonly EntityDef[] = [WORKSPACES, TAGS, TASKS, SUBTASKS, TASK_TAGS, NOTES, NOTE_TAGS, REMINDERS];
+export const SYNC_ORDER: readonly EntityDef[] = [WORKSPACES, TAGS, TASKS, SUBTASKS, TASK_TAGS, NOTES, NOTE_TAGS, REMINDERS, HABITS, HABIT_ENTRIES];
 export const entityByName = (n: string): EntityDef => { const d = SYNC_ORDER.find((x) => x.name === n); if (!d) throw new Error(`Unknown entity ${n}`); return d; };

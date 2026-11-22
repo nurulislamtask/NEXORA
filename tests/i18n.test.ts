@@ -15,9 +15,9 @@ test('en and bn define identical keys, none empty, same placeholders', () => {
 });
 test('every key used in the UI exists (static + dynamic families)', () => {
   const used = new Set([...src.matchAll(/\bt\(\s*'([a-zA-Z0-9_.=-]+)'/g)].map((m) => m[1]!));
-  const fam: Record<string, string[]> = { 'auth.': ['login', 'register', 'reset', 'loginSubmit', 'registerSubmit', 'resetSubmit'], 'nav.': ['home', 'my-day', 'tasks', 'notes', 'settings'], 'notes.view.': ['active', 'archived', 'trash'],
+  const fam: Record<string, string[]> = { 'auth.': ['login', 'register', 'reset', 'loginSubmit', 'registerSubmit', 'resetSubmit'], 'nav.': ['home', 'my-day', 'tasks', 'notes', 'habits', 'clipboard', 'settings'], 'notes.view.': ['active', 'archived', 'trash'],
     'priority.': ['0', '1', '2', '3', '4'], 'repeat.': ['none', 'FREQ=DAILY', 'FREQ=WEEKLY', 'FREQ=MONTHLY', 'FREQ=YEARLY'], 'sort.': ['due', 'priority', 'created', 'manual'], 'sync.': ['idle', 'syncing', 'synced', 'offline', 'failed', 'local'],
-    'view.': ['my-day', 'all', 'overdue', 'upcoming', 'important', 'completed', 'archived', 'trash'], 'home.': ['goodMorning', 'goodAfternoon', 'goodEvening'] };
+    'view.': ['my-day', 'all', 'overdue', 'upcoming', 'important', 'completed', 'archived', 'trash'], 'home.': ['goodMorning', 'goodAfternoon', 'goodEvening'], 'habits.freq.': ['daily', 'weekdays', 'weekends', 'custom'], 'clip.result.': ['added', 'bumped', 'disabled', 'paused', 'empty', 'too-large', 'sensitive'], 'clip.cat.': ['text', 'link', 'email', 'number', 'code'], 'palette.kind.': ['task', 'note', 'habit', 'tag', 'clip'], 'backup.err.': ['not-json', 'not-a-backup', 'unsupported-format', 'checksum-mismatch', 'file-too-large', 'bad-table', 'bad-row', 'bad-key', 'missing-workspace'] };
   for (const [p, xs] of Object.entries(fam)) for (const x of xs) used.add(p + x);
   for (const k of ['auth.invalidCredentials', 'auth.emailNotConfirmed', 'auth.userExists', 'auth.passwordWeak', 'auth.passwordShort', 'auth.passwordLong', 'auth.rateLimited', 'auth.network', 'auth.emailInvalid', 'auth.generic', 'profile.nameInvalid']) used.add(k);
   const missing = [...used].filter((k) => !(k in en)); assert.deepEqual(missing, []);

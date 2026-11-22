@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { createTask, listTasks, setTaskCompleted, updateTask, type TaskViewName } from '../../core/data/tasks.ts';
 import { listTags } from '../../core/data/tags.ts';
 import { dayBounds } from '../../core/data/dates.ts';
@@ -9,10 +9,12 @@ import { Empty, Icon, Skeleton, useToast } from '../components/ui.tsx';
 import { TaskDialog } from './TaskDialog.tsx';
 
 const VIEWS: TaskViewName[] = ['my-day', 'all', 'overdue', 'upcoming', 'important', 'completed', 'archived', 'trash'];
-export function TasksPage({ initialView }: { initialView: TaskViewName }) {
+export function TasksPage({ initialView, openId, newSignal }: { initialView: TaskViewName; openId?: string; newSignal?: number }) {
   const t = useT(); const { ctx, workspaceId } = useRuntime(); const toast = useToast();
   const [view, setView] = useState<TaskViewName>(initialView); const [search, setSearch] = useState(''); const [priority, setPriority] = useState(''); const [tagId, setTagId] = useState('');
   const [sort, setSort] = useState<'due' | 'priority' | 'created' | 'manual'>('due'); const [quick, setQuick] = useState(''); const [open, setOpen] = useState<string | null | undefined>(undefined);
+  useEffect(() => { if (openId) setOpen(openId); }, [openId]);
+  useEffect(() => { if (newSignal) setOpen(null); }, [newSignal]);
   const tags = useQuery(ctx, () => listTags(ctx), []);
   const q = useQuery(ctx, () => listTasks(ctx, { view, ...dayBounds(new Date()), sort, ...(priority !== '' ? { priority: Number(priority) } : {}), ...(tagId ? { tagId } : {}), search }), [view, sort, priority, tagId, search]);
   async function add(e: FormEvent) { e.preventDefault(); if (!quick.trim()) return; try { await createTask(ctx, workspaceId, { title: quick, ...(view === 'my-day' ? { is_my_day_date: dayBounds(new Date()).today } : {}), ...(view === 'important' ? { is_favorite: true } : {}) }); setQuick(''); } catch (err) { toast(err instanceof Error ? err.message : String(err), 'err'); } }

@@ -42,3 +42,12 @@ Auth (register, login, logout, reset-email request, change password, display nam
 
 ## Not started
 Sticky-note windows · pages/blocks/workspaces UI · projects · calendar · habits · clipboard manager · global search UI/command palette · backup/restore UI · update UI · Android build · installers · macOS/Linux builds.
+
+## Addendum — habits, clipboard, backup, search, sticky notes, reminders
+
+**Tested (57 Node tests pass in UTC, Asia/Dhaka, America/Los_Angeles; `tsc` against local shims passes):**
+habit streaks and sync, backup create/validate/restore (checksum, merge and replace modes), clipboard history logic (dedupe, sensitive-data skip, limits), cross-entity search, sticky-note state, reminder snooze, keyboard shortcut mapping, EN/BN key parity, SSR smoke render of Habits, Clipboard and Settings pages.
+
+**Written, unverified (never compiled or run):** Rust `open_sticky` command and capabilities, migration 3 registration in `main.rs`, window/event Tauri APIs, command palette, reminder banner, clipboard watcher (reads clipboard only when the app gains focus and only if the user opted in), real UI interaction in a browser or Tauri webview.
+
+**Limitations:** no background clipboard monitor or OS notifications; clipboard history is local-only and excluded from sync and backups; sticky windows are desktop-only.
