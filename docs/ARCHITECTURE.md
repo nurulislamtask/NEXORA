@@ -1,10 +1,10 @@
 # Architecture (Tauri 2 migration)
-- **UI:** React 19 + strict TS + Vite + Tailwind; Motion for animation (respect `prefers-reduced-motion`); Lucide icons. Feature-first folders under `src/features/*`; shared logic in `src/core`.
+- **UI:** React 19 + strict TypeScript + Vite, hand-written CSS variables for the 14 themes (WCAG-contrast tested), small inline icon set; animations respect `prefers-reduced-motion`.
 - **Local data:** SQLite via `tauri-plugin-sql` with migrations in `src-tauri/migrations`. Local-first: every write commits locally with `dirty=1` plus a `sync_outbox` row. Clipboard history is local-only and never synced.
 - **Sync:** push outbox (idempotent by client UUID + version), pull `updated_at > cursor`. Decisions come from `src/core/sync/conflict.ts` (pure, unit-tested; the earlier Rust prototype was removed so there is one source of truth): remote wins in place and a differing local edit is kept as a conflict copy; edits beat deletes.
 - **Cloud:** Supabase Postgres with RLS default-deny (`user_id = auth.uid()`), private storage bucket namespaced by uid; client holds only the anon key.
-- **Updates:** Tauri updater with signed artifacts from GitHub Releases (`latest.json`). `core/update/policy.ts` only classifies optional vs mandatory; it never installs. Mandatory is reserved for security/compatibility and always user-visible.
-- **Platform notes:** Windows clipboard monitor via Win32 `AddClipboardFormatListener` (Rust, planned). Android cannot monitor the clipboard in the background; sticky-note windows are desktop-only. Linux clipboard differs on X11/Wayland.
+- **Updates:** currently a manual check against GitHub Releases (`core/update/github.ts`); Settings links to the download. Automatic signed updates (`tauri-plugin-updater`) are NOT enabled: they need a signing key pair, which does not exist yet.
+- **Platform notes:** the clipboard is polled every 2 s from the webview while the desktop app runs (opt-in, `tauri-plugin-clipboard-manager`); a Win32 listener in Rust is not implemented. Android has no clipboard monitor, no OS keychain backend (in-memory key fallback) and no sticky windows. Code lives in `src-tauri/src/lib.rs` so desktop and Android share it.
 - **Roadmap:** P1 shell/themes/animation → P2 auth, tasks, notes, search → P3 sticky notes, pages, projects, calendar, habits, clipboard, notifications → P4 sync/backup → P5 platform installers → P6 updater/release.
 
 ## Code map

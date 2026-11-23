@@ -17,6 +17,7 @@ jobs:
       - run: npx tauri icon src-tauri/app-icon.png
       - run: npm test
       - run: npx tauri build
+        env: {VITE_SUPABASE_URL: "${{ vars.VITE_SUPABASE_URL }}", VITE_SUPABASE_ANON_KEY: "${{ vars.VITE_SUPABASE_ANON_KEY }}"}
       - uses: actions/upload-artifact@v4
         with:
           name: nexora-${{ matrix.os }}
@@ -47,6 +48,7 @@ jobs:
       - run: npx tauri android init
       - name: Build debug-signed APK (arm64)
         run: npx tauri android build --apk --debug --target aarch64
+        env: {VITE_SUPABASE_URL: "${{ vars.VITE_SUPABASE_URL }}", VITE_SUPABASE_ANON_KEY: "${{ vars.VITE_SUPABASE_ANON_KEY }}"}
       - uses: actions/upload-artifact@v4
         with:
           name: nexora-android
@@ -57,17 +59,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {contents: write}
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: {path: dist-artifacts}
       - name: Create pre-release
         env: {GH_TOKEN: "${{ github.token }}"}
         run: |
           TAG="v0.1.0-preview.${{ github.run_number }}"
-          cat > notes.md <<'NOTES'
-          **Preview build - not a stable release.** Unsigned installers built by GitHub Actions from branch `migrate/tauri-react`.
-          Tested in CI: 69 automated tests, TypeScript check, Rust compile, Postgres security tests.
-          NOT tested: running the installed app on a real machine (login, sync with a real Supabase project, window behaviour). Windows SmartScreen / macOS Gatekeeper will warn because the files are unsigned. Auto-update is not enabled in this build (Settings > Updates only checks GitHub and links to the download).
-          The Android .apk is debug-signed, arm64 only: allow installing unknown apps to use it. On Android you must sign in again after each restart (no OS keychain backend), and sticky-note windows are desktop-only.
-          Not included: Google sign-in and password reset (deliberately postponed).
-          NOTES
+          cp .github/release-notes.md notes.md
           gh release create "$TAG" --repo "${{ github.repository }}" --target "${{ github.sha }}" --prerelease --title "NEXORA $TAG (preview)" --notes-file notes.md $(find dist-artifacts -type f)
