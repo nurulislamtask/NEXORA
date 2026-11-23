@@ -56,3 +56,23 @@ export function applyTheme(theme: Theme, radiusPx?: number, root: HTMLElement = 
   for (const [k, val] of Object.entries(toCssVars(theme, radiusPx))) root.style.setProperty(k, val);
   root.dataset['theme'] = theme.id;
 }
+
+export interface ThemeIssue { pair: string; ratio: number; min: number }
+/** Accessibility rules a custom theme must meet (WCAG AA: 4.5 for body text, 3 for UI/large elements). */
+export function themeIssues(k: ThemeTokens): ThemeIssue[] {
+  const rules: [string, string, string, number][] = [['text/background', k.text, k.background, 4.5], ['text/card', k.text, k.card, 4.5], ['text/sidebar', k.text, k.sidebar, 4.5], ['muted text/background', k.textMuted, k.background, 4.5], ['primary/background', k.primary, k.background, 3], ['accent/background', k.accent, k.background, 3]];
+  return rules.map(([pair, a, b, min]) => ({ pair, ratio: Math.round(contrast(a, b) * 100) / 100, min })).filter((r) => r.ratio < r.min);
+}
+export type CustomThemeResult = { ok: true; theme: Theme } | { ok: false; error: 'name' | 'tokens' | 'contrast'; issues?: ThemeIssue[] };
+export function makeCustomTheme(id: string, name: string, tokens: unknown): CustomThemeResult {
+  const n = name.trim(); if (n.length < 1 || n.length > 40) return { ok: false, error: 'name' };
+  if (!isValidTokens(tokens)) return { ok: false, error: 'tokens' };
+  const issues = themeIssues(tokens); if (issues.length) return { ok: false, error: 'contrast', issues };
+  return { ok: true, theme: { id: `custom-${id}`, name: n, dark: contrast(tokens.background, '#000000') < contrast(tokens.background, '#ffffff'), tokens } };
+}
+/** Parses stored custom themes defensively: anything invalid is dropped rather than crashing startup. */
+export function parseCustomThemes(raw: unknown): Theme[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 20).flatMap((x) => { const o = x as { id?: unknown; name?: unknown; tokens?: unknown }; if (typeof o?.id !== 'string' || !/^custom-[a-z0-9-]{1,40}$/.test(o.id) || typeof o.name !== 'string') return [];
+    const r = makeCustomTheme(o.id.slice(7), o.name, o.tokens); return r.ok ? [r.theme] : []; });
+}

@@ -128,3 +128,30 @@ export async function listTasks(ctx: Ctx, q: TaskQuery): Promise<TaskView[]> {
   if (ids.length) for (const r of await ctx.db.all<{ task_id: string; total: number; done: number }>(`SELECT task_id, COUNT(*) AS total, SUM(is_done) AS done FROM subtasks WHERE deleted_at IS NULL AND task_id IN (${ids.map(() => '?').join(',')}) GROUP BY task_id`, ids)) counts.set(r.task_id, { total: r.total, done: Number(r.done) });
   return tasks.map((t) => ({ ...t, labels: labels.get(t.id) ?? [], subtasksTotal: counts.get(t.id)?.total ?? 0, subtasksDone: counts.get(t.id)?.done ?? 0 }));
 }
+
+/** Manual order is `sort_order DESC`. Moves `id` to `toIndex` within `orderedIds` (ids as currently shown, top first).
+ *  The visible list is renumbered (only rows whose value changes are written), so tasks that all start at sort_order 0 still reorder correctly. */
+export async function reorderTask(ctx: Ctx, orderedIds: string[], id: string, toIndex: number): Promise<void> {
+  if (!(await getRow(ctx, TASKS, { id }))) throw new Error('Task not found');
+  const list = orderedIds.filter((x) => x !== id); list.splice(Math.max(0, Math.min(toIndex, list.length)), 0, id);
+  for (let i = 0; i < list.length; i++) {
+    const cur = await getRow(ctx, TASKS, { id: list[i]! }); const want = list.length - i;
+    if (cur && Number(cur['sort_order']) !== want) await putLocal(ctx, TASKS, { ...cur, sort_order: want });
+  }
+}
+export type BulkAction = { kind: 'complete'; done: boolean } | { kind: 'delete' } | { kind: 'priority'; value: number } | { kind: 'project'; projectId: string | null } | { kind: 'archive' };
+/** Applies one action to many tasks. Per-task failures do not stop the rest; they are returned. */
+export async function bulkApply(ctx: Ctx, ids: string[], a: BulkAction): Promise<{ ok: number; failed: { id: string; error: string }[] }> {
+  let ok = 0; const failed: { id: string; error: string }[] = [];
+  for (const id of [...new Set(ids)]) {
+    try {
+      if (a.kind === 'complete') await setTaskCompleted(ctx, id, a.done);
+      else if (a.kind === 'delete') { const c = await getRow(ctx, TASKS, { id }); if (!c) throw new Error('Task not found'); await putLocal(ctx, TASKS, { ...c, deleted_at: ctx.now() }); }
+      else if (a.kind === 'archive') { const c = await getRow(ctx, TASKS, { id }); if (!c) throw new Error('Task not found'); await putLocal(ctx, TASKS, { ...c, archived_at: ctx.now() }); }
+      else if (a.kind === 'priority') await updateTask(ctx, id, { priority: a.value });
+      else await updateTask(ctx, id, { project_id: a.projectId });
+      ok++;
+    } catch (e) { failed.push({ id, error: e instanceof Error ? e.message : String(e) }); }
+  }
+  return { ok, failed };
+}

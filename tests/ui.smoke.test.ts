@@ -12,14 +12,14 @@ before(async () => {
   const esbuild = (() => { try { return req('esbuild'); } catch { return createRequire('/opt/npm-tools/')('esbuild'); } })();
   const out = await esbuild.build({ entryPoints: [fileURLToPath(new URL('./helpers/smokeEntry.tsx', import.meta.url))], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', nodePaths: NODE_PATHS,
     loader: { '.css': 'empty' }, define: { 'import.meta.url': JSON.stringify(pathToFileURL(fileURLToPath(new URL('./helpers/nodeDb.ts', import.meta.url))).href), 'import.meta.env': '{}', 'process.env.NODE_ENV': '"production"' }, logLevel: 'silent',
-    alias: { '@tauri-apps/plugin-sql': stub, '@tauri-apps/api/core': stub, '@supabase/supabase-js': stub, '@tauri-apps/api/window': stub, '@tauri-apps/api/event': stub }, external: ['node:*'] });
+    alias: { '@tauri-apps/plugin-sql': stub, '@tauri-apps/api/core': stub, '@supabase/supabase-js': stub, '@tauri-apps/api/window': stub, '@tauri-apps/api/event': stub, '@tauri-apps/plugin-notification': stub, '@tauri-apps/plugin-clipboard-manager': stub }, external: ['node:*'] });
   const mod = { exports: {} as Record<string, unknown> };
   new Function('module', 'exports', 'require', out.outputFiles[0].text)(mod, mod.exports, req);
   pages = mod.exports['pages'] as typeof pages;
 });
 
 test('every page server-renders in English and Bangla without throwing', () => {
-  for (const name of ['settings', 'tasks', 'notes', 'dashboard', 'editor', 'auth', 'app', 'habits', 'clipboard', 'projects', 'calendar']) for (const l of ['en', 'bn'] as const) assert.ok(pages[name]!(l).length > 50, `${name}/${l}`);
+  for (const name of ['settings', 'tasks', 'notes', 'dashboard', 'editor', 'auth', 'app', 'habits', 'clipboard', 'projects', 'calendar', 'pages']) for (const l of ['en', 'bn'] as const) assert.ok(pages[name]!(l).length > 50, `${name}/${l}`);
 });
 test('settings: all 14 themes offered, language switch reflected', () => {
   const en = pages['settings']!('en'); assert.equal((en.match(/role="radio"/g) ?? []).length, 14); assert.ok(en.includes('Appearance') && en.includes('Local only') === false);
@@ -43,4 +43,8 @@ test('new pages: clipboard shows privacy disclosure + opt-in, habits form, setti
 test('projects and calendar pages render (EN/BN)', () => {
   assert.ok(pages['projects']!('en').includes('Project name') && pages['projects']!('bn').includes('প্রজেক্ট'));
   const c = pages['calendar']!('en'); assert.ok(c.includes('New event') && c.includes('role="grid"') && (c.match(/role="gridcell"/g) ?? []).length === 42);
+});
+test('pages page + custom theme editor + update section render', () => {
+  assert.ok(pages['pages']!('en').includes('New page') && pages['pages']!('bn').includes('নতুন পেজ'));
+  const s = pages['settings']!('en'); assert.ok(s.includes('Create a custom theme') && s.includes('Check for updates') && s.includes('system notifications'));
 });

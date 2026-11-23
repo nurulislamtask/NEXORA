@@ -6,3 +6,7 @@ export const createClient = (): never => { throw new Error('stub'); };
 export const getCurrentWindow = (): never => { throw new Error('stub'); };
 export const emit = async (): Promise<void> => {};
 export const listen = async (): Promise<() => void> => () => {};
+export const isPermissionGranted = async (): Promise<boolean> => false;
+export const requestPermission = async (): Promise<string> => 'denied';
+export const sendNotification = (): void => {};
+export const readText = async (): Promise<string> => '';

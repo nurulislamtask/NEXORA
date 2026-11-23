@@ -16,7 +16,9 @@
     "@supabase/supabase-js": "^2.45.0",
     "@tauri-apps/api": "^2.1.0",
     "@tauri-apps/plugin-process": "^2.0.0",
-    "@tauri-apps/plugin-sql": "^2.0.0"
+    "@tauri-apps/plugin-sql": "^2.0.0",
+    "@tauri-apps/plugin-notification": "^2.0.0",
+    "@tauri-apps/plugin-clipboard-manager": "^2.0.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",

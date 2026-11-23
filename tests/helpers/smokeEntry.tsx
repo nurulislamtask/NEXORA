@@ -17,6 +17,7 @@ import { HabitsPage } from '../../src/app/pages/HabitsPage.tsx';
 import { ClipboardPage } from '../../src/app/pages/ClipboardPage.tsx';
 import { ProjectsPage } from '../../src/app/pages/ProjectsPage.tsx';
 import { CalendarPage } from '../../src/app/pages/CalendarPage.tsx';
+import { PagesPage } from '../../src/app/pages/PagesPage.tsx';
 import { App } from '../../src/app/App.tsx';
 
 const rt = (): Runtime => ({ ctx: makeCtx(openTestDb()), workspaceId: 'w', user: { id: 'u', email: 'a@b.co', name: 'Ann' }, offlineSession: false, auth: null, sync: null, async signOut() {} });
@@ -27,5 +28,6 @@ export const pages = {
   auth: (l: 'en' | 'bn') => { updateSettings({ locale: l }); return renderToString(<I18nProvider><AuthGate.Provider value={{ auth: null as never, onSignedIn() {} }}><AuthPage /></AuthGate.Provider></I18nProvider>); },
   habits: (l: 'en' | 'bn') => wrap(l, <HabitsPage />), clipboard: (l: 'en' | 'bn') => wrap(l, <ClipboardPage />),
   projects: (l: 'en' | 'bn') => wrap(l, <ProjectsPage />), calendar: (l: 'en' | 'bn') => wrap(l, <CalendarPage />),
+  pages: (l: 'en' | 'bn') => wrap(l, <PagesPage />),
   app: (l: 'en' | 'bn') => { updateSettings({ locale: l }); return renderToString(<App />); },
 };

@@ -76,3 +76,9 @@ mark { background: color-mix(in srgb, var(--nx-primary) 25%, transparent); color
 .cal-d.other { opacity: .5; } .cal-d.today > span { background: var(--nx-primary); color: #fff; border-radius: 99px; padding: 0 6px; } .cal-d.sel { outline: 2px solid var(--nx-primary); }
 .cal-d small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .7rem; } .cal-d small.task { color: var(--nx-text-muted); }
 @media (max-width: 640px) { .cal-d { min-height: 52px; } .cal-d small { display: none; } }
+
+.bulk { position: sticky; top: 0; z-index: 5; align-items: center; } .task.dragging { opacity: .4; } .task[draggable=true] { cursor: grab; }
+.pages-layout { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 12px; align-items: start; } @media (max-width: 720px) { .pages-layout { grid-template-columns: 1fr; } }
+.tree { list-style: none; margin: 0; padding-left: 12px; } .pages-layout > nav > .tree { padding-left: 0; } .tree-item { width: 100%; text-align: left; border: 0; background: none; padding: 6px 8px; border-radius: 8px; cursor: pointer; color: inherit; } .tree-item.on { background: var(--nx-sidebar); font-weight: 600; }
+.block { align-items: flex-start; } .block-in { width: 100%; resize: vertical; border: 1px solid transparent; background: transparent; color: inherit; font: inherit; padding: 4px 6px; border-radius: 6px; } .block-in:focus { border-color: var(--nx-border); } .block-in.done { text-decoration: line-through; opacity: .6; }
+.b-heading .block-in { font-size: 1.3rem; font-weight: 700; } .b-quote .block-in { border-left: 3px solid var(--nx-primary); border-radius: 0; font-style: italic; } .b-code .block-in { font-family: ui-monospace, monospace; background: var(--nx-sidebar); } .title-in { font-size: 1.4rem; font-weight: 700; }

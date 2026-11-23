@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
-import { applyCurrentTheme, updateSettings, useSettings, watchSystemTheme } from './store.ts';
+import { applyCurrentTheme, updateSettings, getSettings, useSettings, watchSystemTheme } from './store.ts';
 import { I18nProvider, useT } from './i18n.tsx';
 import { RuntimeProvider, useRuntime, useSyncStatus } from './runtime.tsx';
 import { Icon, ToastProvider, useToast } from './components/ui.tsx';
@@ -9,6 +9,7 @@ import { AuthPage } from './pages/AuthPage.tsx';
 import { Dashboard } from './pages/Dashboard.tsx';
 import { TasksPage } from './pages/TasksPage.tsx';
 import { NotesPage } from './pages/NotesPage.tsx';
+import { PagesPage } from './pages/PagesPage.tsx';
 import { ProjectsPage } from './pages/ProjectsPage.tsx';
 import { CalendarPage } from './pages/CalendarPage.tsx';
 import { HabitsPage } from './pages/HabitsPage.tsx';
@@ -16,11 +17,12 @@ import { ClipboardPage } from './pages/ClipboardPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { dueReminders, markReminderFired, setTaskCompleted, snoozeReminder, type DueReminder } from '../core/data/tasks.ts';
 import { addClip } from '../core/data/clipboard.ts';
+import { nativeClipboardPolling, notifyOs, readClipboardNative } from './native.ts';
 import { shortcutAction } from '../core/shortcuts.ts';
 import type { TaskViewName } from '../core/data/tasks.ts';
 
-type Page = 'home' | 'my-day' | 'tasks' | 'notes' | 'projects' | 'calendar' | 'habits' | 'clipboard' | 'settings';
-const NAV: { id: Page; icon: string }[] = [{ id: 'home', icon: 'home' }, { id: 'my-day', icon: 'sun' }, { id: 'tasks', icon: 'tasks' }, { id: 'notes', icon: 'notes' }, { id: 'projects', icon: 'folder' }, { id: 'calendar', icon: 'calendar' }, { id: 'habits', icon: 'check' }, { id: 'clipboard', icon: 'pin' }, { id: 'settings', icon: 'settings' }];
+type Page = 'home' | 'my-day' | 'tasks' | 'notes' | 'projects' | 'calendar' | 'pages' | 'habits' | 'clipboard' | 'settings';
+const NAV: { id: Page; icon: string }[] = [{ id: 'home', icon: 'home' }, { id: 'my-day', icon: 'sun' }, { id: 'tasks', icon: 'tasks' }, { id: 'notes', icon: 'notes' }, { id: 'projects', icon: 'folder' }, { id: 'calendar', icon: 'calendar' }, { id: 'pages', icon: 'notes' }, { id: 'habits', icon: 'check' }, { id: 'clipboard', icon: 'pin' }, { id: 'settings', icon: 'settings' }];
 
 /** Polls for due reminders (while the app is open). Each one stays visible until snoozed, completed or dismissed. */
 function Reminders() {
@@ -28,7 +30,7 @@ function Reminders() {
   useEffect(() => {
     const tick = () => { void (async () => {
       const list = await dueReminders(ctx, new Date().toISOString()); setDue(list);
-      for (const r of list) if (!notified.current.has(r.id)) { notified.current.add(r.id); if ('Notification' in window && Notification.permission === 'granted') new Notification('NEXORA', { body: r.title }); }
+      for (const r of list) if (!notified.current.has(r.id)) { notified.current.add(r.id); if (getSettings().notifications) void notifyOs('NEXORA', r.title); }
     })(); };
     tick(); const iv = setInterval(tick, 15_000); const un = ctx.events.subscribe(tick); return () => { clearInterval(iv); un(); };
   }, [ctx]);
@@ -39,13 +41,14 @@ function Reminders() {
         {r.target_id && <button className="btn" onClick={() => { void setTaskCompleted(ctx, r.target_id!, true).then(() => markReminderFired(ctx, r.id)); }}>{t('reminder.complete')}</button>}
         <button className="btn" onClick={() => { void markReminderFired(ctx, r.id); }}>{t('reminder.dismiss')}</button></span></div>))}</div>);
 }
-/** Saves the clipboard when the window regains focus — ONLY if the user enabled clipboard history. No background monitoring. */
+/** Saves the clipboard on focus, and (desktop app) every 2 s while NEXORA is running — ONLY if the user enabled clipboard history. Nothing runs when the app is closed. */
 function ClipboardWatcher() {
   const { ctx } = useRuntime(); const { clipboard } = useSettings();
   useEffect(() => {
     if (!clipboard.enabled || clipboard.paused) return;
-    const on = () => { void navigator.clipboard.readText().then((tx) => addClip(ctx, tx, clipboard)).catch(() => {}); };
-    window.addEventListener('focus', on); return () => window.removeEventListener('focus', on);
+    let last = ''; const on = () => { void readClipboardNative().then((tx) => { if (tx !== null && tx !== last) { last = tx; void addClip(ctx, tx, clipboard); } }); };
+    window.addEventListener('focus', on); const iv = nativeClipboardPolling() ? setInterval(on, 2000) : undefined; // desktop app: also while the window is in the background
+    return () => { window.removeEventListener('focus', on); if (iv) clearInterval(iv); };
   }, [ctx, clipboard]);
   return null;
 }
@@ -67,7 +70,7 @@ function Shell() {
   const pick = (target: PaletteTarget) => { setPalette(false); if ('command' in target) command(target.command); else go(target.page, target.openId); };
   void toast;
   const { page } = nav;
-  const body = page === 'home' ? <Dashboard go={(p) => go(p)} /> : page === 'notes' ? <NotesPage {...(nav.openId ? { openId: nav.openId } : {})} newSignal={nav.nonce} /> : page === 'settings' ? <SettingsPage /> : page === 'projects' ? <ProjectsPage openTasks={() => go('tasks')} /> : page === 'calendar' ? <CalendarPage openTask={(id) => go('tasks', id)} /> : page === 'habits' ? <HabitsPage /> : page === 'clipboard' ? <ClipboardPage /> :
+  const body = page === 'home' ? <Dashboard go={(p) => go(p)} /> : page === 'notes' ? <NotesPage {...(nav.openId ? { openId: nav.openId } : {})} newSignal={nav.nonce} /> : page === 'settings' ? <SettingsPage /> : page === 'projects' ? <ProjectsPage openTasks={() => go('tasks')} /> : page === 'pages' ? <PagesPage /> : page === 'calendar' ? <CalendarPage openTask={(id) => go('tasks', id)} /> : page === 'habits' ? <HabitsPage /> : page === 'clipboard' ? <ClipboardPage /> :
     <TasksPage key={page} initialView={(page === 'my-day' ? 'my-day' : 'all') as TaskViewName} {...(nav.openId ? { openId: nav.openId } : {})} newSignal={nav.nonce} />;
   return (<div className={`layout${collapsed ? ' collapsed' : ''}`}>
     <aside className="sidebar" aria-label={t('nav.main')}>
