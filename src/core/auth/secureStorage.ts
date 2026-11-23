@@ -36,3 +36,13 @@ export class EncryptedStorage {
   }
   async removeItem(name: string): Promise<void> { await this.kv.removeItem(name); }
 }
+
+/** If the primary key store is unavailable (e.g. Android, which has no desktop keychain backend), keep the key in memory only:
+ *  tokens are still encrypted at rest, but cannot be decrypted after a restart, so the user simply signs in again. */
+export function withMemoryFallback(primary: KeyStore): KeyStore {
+  let mem: string | null = null;
+  return {
+    async get() { try { return (await primary.get()) ?? mem; } catch { return mem; } },
+    async set(v) { try { await primary.set(v); } catch { mem = v; } },
+  };
+}

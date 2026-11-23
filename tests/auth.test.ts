@@ -88,3 +88,12 @@ test('JSON export contains all user data', async () => {
   const ctx = makeCtx(openTestDb()); const ws = await ensureDefaultWorkspace(ctx, 'u1'); await createTask(ctx, ws, { title: 'বাংলা টাস্ক', labels: ['l'] });
   const j = JSON.parse(await exportAllJson(ctx)); assert.equal(j.tasks[0].title, 'বাংলা টাস্ক'); assert.equal(j.tags[0].name, 'l'); assert.equal(j.task_tags.length, 1); assert.ok(!('clipboard_items' in j));
 });
+
+test('key store fallback: unavailable keychain keeps an in-memory key instead of breaking sign-in', async () => {
+  const { withMemoryFallback, EncryptedStorage } = await import('../src/core/auth/secureStorage.ts');
+  const broken = withMemoryFallback({ get: () => Promise.reject(new Error('no keychain')), set: () => Promise.reject(new Error('no keychain')) });
+  const kv = new Map<string, string>(); const st = new EncryptedStorage(broken, { getItem: (k) => kv.get(k) ?? null, setItem: (k, v) => { kv.set(k, v); }, removeItem: (k) => { kv.delete(k); } });
+  await st.setItem('session', 'tok'); assert.equal(await st.getItem('session'), 'tok');
+  const fresh = new EncryptedStorage(withMemoryFallback({ get: () => Promise.reject(new Error('x')), set: () => Promise.reject(new Error('x')) }), { getItem: (k) => kv.get(k) ?? null, setItem: () => {}, removeItem: () => {} });
+  assert.equal(await fresh.getItem('session'), null, 'after a restart the key is gone, so the stored token is unreadable (user signs in again)');
+});

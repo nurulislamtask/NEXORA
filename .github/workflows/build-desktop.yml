@@ -26,9 +26,35 @@ jobs:
             src-tauri/target/release/bundle/**/*.deb
             src-tauri/target/release/bundle/**/*.AppImage
             src-tauri/target/release/bundle/**/*.dmg
+  android:
+    if: contains(github.event.head_commit.message, '[build]') || contains(github.event.head_commit.message, '[release]')
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: 17}
+      - uses: android-actions/setup-android@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with: {targets: "aarch64-linux-android"}
+      - name: Install NDK
+        run: |
+          sdkmanager "ndk;27.2.12479018" "platforms;android-34" "build-tools;34.0.0"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> $GITHUB_ENV
+      - run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf libdbus-1-dev
+      - run: npm install
+      - run: npx tauri icon src-tauri/app-icon.png
+      - run: npx tauri android init
+      - name: Build debug-signed APK (arm64)
+        run: npx tauri android build --apk --debug --target aarch64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nexora-android
+          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
   release:
-    needs: desktop
-    if: contains(github.event.head_commit.message, '[release]')
+    needs: [desktop, android]
+    if: ${{ !cancelled() && needs.desktop.result == 'success' && contains(github.event.head_commit.message, '[release]') }}
     runs-on: ubuntu-latest
     permissions: {contents: write}
     steps:
@@ -40,7 +66,7 @@ jobs:
           TAG="v0.1.0-preview.${{ github.run_number }}"
           cat > notes.md <<'NOTES'
           **Preview build - not a stable release.** Unsigned installers built by GitHub Actions from branch `migrate/tauri-react`.
-          Tested in CI: 62 automated tests, TypeScript check, Rust compile, Postgres security tests.
+          Tested in CI: 69 automated tests, TypeScript check, Rust compile, Postgres security tests.
           NOT tested: running the installed app on a real machine (login, sync with a real Supabase project, window behaviour). Windows SmartScreen / macOS Gatekeeper will warn because the files are unsigned. Auto-update is not enabled in this build.
           NOTES
           gh release create "$TAG" --repo "${{ github.repository }}" --target "${{ github.sha }}" --prerelease --title "NEXORA $TAG (preview)" --notes-file notes.md $(find dist-artifacts -type f)
