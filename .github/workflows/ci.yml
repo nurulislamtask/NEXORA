@@ -1,0 +1,32 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm test          # data layer on real SQLite, sync engine, auth, i18n, UI server-render smoke
+      - run: npm run build
+  rust:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm install && npx tauri icon src-tauri/app-icon.png && mkdir -p dist
+      - run: cargo check --manifest-path src-tauri/Cargo.toml
+  sql:
+    runs-on: ubuntu-latest
+    services: {pg: {image: "postgres:16", env: {POSTGRES_PASSWORD: pw}, ports: ["5432:5432"]}}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          export PGPASSWORD=pw; P="psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 -q"
+          for i in $(seq 1 30); do pg_isready -h 127.0.0.1 -U postgres && break; sleep 2; done; sleep 3
+          for f in supabase/tests/00_stub_supabase.sql supabase/migrations/*.sql supabase/tests/rls_test.sql; do $P -f $f; done
