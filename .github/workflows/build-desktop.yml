@@ -66,6 +66,8 @@ jobs:
           cat > notes.md <<'NOTES'
           **Preview build - not a stable release.** Unsigned installers built by GitHub Actions from branch `migrate/tauri-react`.
           Tested in CI: 69 automated tests, TypeScript check, Rust compile, Postgres security tests.
-          NOT tested: running the installed app on a real machine (login, sync with a real Supabase project, window behaviour). Windows SmartScreen / macOS Gatekeeper will warn because the files are unsigned. Auto-update is not enabled in this build.
+          NOT tested: running the installed app on a real machine (login, sync with a real Supabase project, window behaviour). Windows SmartScreen / macOS Gatekeeper will warn because the files are unsigned. Auto-update is not enabled in this build (Settings > Updates only checks GitHub and links to the download).
+          The Android .apk is debug-signed, arm64 only: allow installing unknown apps to use it. On Android you must sign in again after each restart (no OS keychain backend), and sticky-note windows are desktop-only.
+          Not included: Google sign-in and password reset (deliberately postponed).
           NOTES
           gh release create "$TAG" --repo "${{ github.repository }}" --target "${{ github.sha }}" --prerelease --title "NEXORA $TAG (preview)" --notes-file notes.md $(find dist-artifacts -type f)
