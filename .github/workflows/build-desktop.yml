@@ -35,13 +35,12 @@ jobs:
         with: {node-version: 22}
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: 17}
-      - uses: android-actions/setup-android@v3
       - uses: dtolnay/rust-toolchain@stable
         with: {targets: "aarch64-linux-android"}
-      - name: Install NDK
+      - name: Use the runner's preinstalled Android SDK/NDK
         run: |
-          sdkmanager "ndk;27.2.12479018" "platforms;android-34" "build-tools;34.0.0"
-          echo "NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_HOME NDK=$ANDROID_NDK_HOME"; ls "$ANDROID_HOME/ndk" || true
+          echo "NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
       - run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev librsvg2-dev patchelf libdbus-1-dev
       - run: npm install
       - run: npx tauri icon src-tauri/app-icon.png
