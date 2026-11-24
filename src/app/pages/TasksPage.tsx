@@ -43,10 +43,10 @@ export function TasksPage({ initialView, openId, newSignal }: { initialView: Tas
         <button className="btn" onClick={() => { void bulk({ kind: 'archive' }); }}>{t('bulk.archive')}</button>
         <button className="btn danger" onClick={() => { if (window.confirm(t('bulk.confirmDelete', { n: sel.size }))) void bulk({ kind: 'delete' }); }}>{t('common.delete')}</button>
         <button className="link" onClick={() => setSel(new Set())}>{t('common.cancel')}</button></div>}
-      <ul className="list">{q.data!.map((k, idx) => (
+      <ul className={`list${sel.size > 0 ? ' has-sel' : ''}`}>{q.data!.map((k, idx) => (
         <li key={k.id} draggable={manual} onDragStart={() => setDragId(k.id)} onDragOver={(e) => { if (manual && dragId) e.preventDefault(); }} onDrop={() => { if (manual && dragId && dragId !== k.id) move(dragId, idx); setDragId(null); }} onDragEnd={() => setDragId(null)}
           className={`task p${k.priority}${k.status === 'completed' ? ' is-done' : ''}${dragId === k.id ? ' dragging' : ''}`}>
-          <input type="checkbox" className="cb sel" checked={sel.has(k.id)} aria-label={t('bulk.select', { title: k.title })} onChange={() => toggle(k.id)} />
+          <input type="checkbox" className="sel-box" checked={sel.has(k.id)} aria-label={t('bulk.select', { title: k.title })} onChange={() => toggle(k.id)} />
           {manual && <span className="row"><button className="icon-btn" aria-label={t('tasks.moveUp')} disabled={idx === 0} onClick={() => move(k.id, idx - 1)}>↑</button><button className="icon-btn" aria-label={t('tasks.moveDown')} disabled={idx === ids.length - 1} onClick={() => move(k.id, idx + 1)}>↓</button></span>}
           <input type="checkbox" className="cb" checked={k.status === 'completed'} aria-label={k.title} disabled={view === 'trash'} onChange={(e) => { void setTaskCompleted(ctx, k.id, e.target.checked); }} />
           <button className="task-main" onClick={() => setOpen(k.id)}><span className="task-title">{k.title}</span>

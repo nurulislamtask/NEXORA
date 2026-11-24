@@ -228,4 +228,10 @@ export const en = {
   'pages.block.quote': 'Quote',
   'pages.block.code': 'Code',
   'pages.block.divider': 'Divider',
+  'nav.group.plan': 'Plan',
+  'nav.group.capture': 'Capture',
+  'nav.more': 'More',
+  'home.summary': '{n} tasks for today · {done} done',
+  'home.doneToday': 'Done today',
+  'auth.tagline': 'Your offline-first workspace',
 } as const;

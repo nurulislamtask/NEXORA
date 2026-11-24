@@ -3,7 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { applyCurrentTheme, updateSettings, getSettings, useSettings, watchSystemTheme } from './store.ts';
 import { I18nProvider, useT } from './i18n.tsx';
 import { RuntimeProvider, useRuntime, useSyncStatus } from './runtime.tsx';
-import { Icon, ToastProvider, useToast } from './components/ui.tsx';
+import { Icon, Logo, ToastProvider, useToast } from './components/ui.tsx';
 import { Palette, type PaletteTarget } from './components/Palette.tsx';
 import { AuthPage } from './pages/AuthPage.tsx';
 import { Dashboard } from './pages/Dashboard.tsx';
@@ -22,7 +22,9 @@ import { shortcutAction } from '../core/shortcuts.ts';
 import type { TaskViewName } from '../core/data/tasks.ts';
 
 type Page = 'home' | 'my-day' | 'tasks' | 'notes' | 'projects' | 'calendar' | 'pages' | 'habits' | 'clipboard' | 'settings';
-const NAV: { id: Page; icon: string }[] = [{ id: 'home', icon: 'home' }, { id: 'my-day', icon: 'sun' }, { id: 'tasks', icon: 'tasks' }, { id: 'notes', icon: 'notes' }, { id: 'projects', icon: 'folder' }, { id: 'calendar', icon: 'calendar' }, { id: 'pages', icon: 'notes' }, { id: 'habits', icon: 'check' }, { id: 'clipboard', icon: 'pin' }, { id: 'settings', icon: 'settings' }];
+const NAV: { id: Page; icon: string }[] = [{ id: 'home', icon: 'home' }, { id: 'my-day', icon: 'sun' }, { id: 'tasks', icon: 'tasks' }, { id: 'projects', icon: 'folder' }, { id: 'calendar', icon: 'calendar' }, { id: 'habits', icon: 'repeat' }, { id: 'notes', icon: 'notes' }, { id: 'pages', icon: 'layers' }, { id: 'clipboard', icon: 'clipboard' }, { id: 'settings', icon: 'settings' }];
+const GROUPS: { key: string; ids: Page[] }[] = [{ key: 'plan', ids: ['home', 'my-day', 'tasks', 'projects', 'calendar', 'habits'] }, { key: 'capture', ids: ['notes', 'pages', 'clipboard'] }];
+const TAB_BAR: Page[] = ['home', 'tasks', 'notes', 'calendar'];
 
 /** Polls for due reminders (while the app is open). Each one stays visible until snoozed, completed or dismissed. */
 function Reminders() {
@@ -56,9 +58,9 @@ function SyncBadge() {
   const t = useT(); const s = useSyncStatus(); const { sync } = useRuntime();
   return <button className={`sync-badge ${s.status}`} onClick={() => { void sync?.sync(); }} title={s.lastError ?? ''} aria-label={t(`sync.${s.status}`)}><i />{t(`sync.${s.status}`)}</button>;
 }
-function Shell() {
+export function Shell({ initialPage = 'home' as Page }: { initialPage?: Page } = {}) {
   const t = useT(); const toast = useToast(); const { ctx } = useRuntime(); const collapsed = useSettings().sidebarCollapsed;
-  const [nav, setNav] = useState<{ page: Page; openId?: string; nonce: number }>({ page: 'home', nonce: 0 }); const [palette, setPalette] = useState(false);
+  const [nav, setNav] = useState<{ page: Page; openId?: string; nonce: number }>({ page: initialPage, nonce: 0 }); const [palette, setPalette] = useState(false); const [more, setMore] = useState(false);
   const go = (page: Page, openId?: string) => setNav((n) => ({ page, ...(openId ? { openId } : {}), nonce: n.nonce }));
   const command = (c: 'new-task' | 'new-note') => setNav((n) => ({ page: c === 'new-task' ? 'tasks' : 'notes', nonce: n.nonce + 1 }));
   useEffect(() => {
@@ -72,14 +74,16 @@ function Shell() {
   const { page } = nav;
   const body = page === 'home' ? <Dashboard go={(p) => go(p)} /> : page === 'notes' ? <NotesPage {...(nav.openId ? { openId: nav.openId } : {})} newSignal={nav.nonce} /> : page === 'settings' ? <SettingsPage /> : page === 'projects' ? <ProjectsPage openTasks={() => go('tasks')} /> : page === 'pages' ? <PagesPage /> : page === 'calendar' ? <CalendarPage openTask={(id) => go('tasks', id)} /> : page === 'habits' ? <HabitsPage /> : page === 'clipboard' ? <ClipboardPage /> :
     <TasksPage key={page} initialView={(page === 'my-day' ? 'my-day' : 'all') as TaskViewName} {...(nav.openId ? { openId: nav.openId } : {})} newSignal={nav.nonce} />;
+  const item = (id: Page, extra = '') => <button key={id} className={extra} aria-current={id === page ? 'page' : undefined} onClick={() => { go(id); setMore(false); }} title={t(`nav.${id}`)}><Icon name={NAV.find((n) => n.id === id)!.icon} /><span>{t(`nav.${id}`)}</span></button>;
   return (<div className={`layout${collapsed ? ' collapsed' : ''}`}>
     <aside className="sidebar" aria-label={t('nav.main')}>
-      <div className="row between"><span className="brand">{collapsed ? 'N' : 'NEXORA'}</span><button className="icon-btn" onClick={() => updateSettings({ sidebarCollapsed: !collapsed })} aria-label={t('nav.toggle')}><Icon name="menu" /></button></div>
-      <button className="btn" onClick={() => setPalette(true)}><Icon name="search" /><span>{t('common.search')}</span></button>
-      <nav className="nav">{NAV.map((n) => <button key={n.id} aria-current={n.id === page ? 'page' : undefined} onClick={() => go(n.id)} title={t(`nav.${n.id}`)}><Icon name={n.icon} /><span>{t(`nav.${n.id}`)}</span></button>)}</nav>
-      <div className="grow" /><SyncBadge /></aside>
+      <div className="side-top"><Logo size={34} /><span className="brand-name">NEXORA</span><button className="icon-btn" onClick={() => updateSettings({ sidebarCollapsed: !collapsed })} aria-label={t('nav.toggle')}><Icon name="panel" /></button></div>
+      <button className="search-btn" onClick={() => setPalette(true)} aria-label={t('common.search')}><Icon name="search" /><span>{t('common.search')}</span><kbd>Ctrl K</kbd></button>
+      <nav className="nav">{GROUPS.map((g) => <div key={g.key} className="nav-group"><p className="nav-label">{t(`nav.group.${g.key}`)}</p>{g.ids.map((id) => item(id))}</div>)}</nav>
+      <div className="grow" /><div className="side-bottom">{item('settings')}<SyncBadge /></div></aside>
     <main key={page} className="page">{body}</main>
-    <nav className="bottom-nav" aria-label={t('nav.main')}>{NAV.filter((n) => n.id !== 'my-day' && n.id !== 'clipboard').map((n) => <button key={n.id} aria-current={n.id === page ? 'page' : undefined} onClick={() => go(n.id)}><Icon name={n.icon} /><span>{t(`nav.${n.id}`)}</span></button>)}</nav>
+    <nav className="bottom-nav" aria-label={t('nav.main')}>{TAB_BAR.map((id) => item(id))}<button aria-expanded={more} onClick={() => setMore((v) => !v)}><Icon name="more" /><span>{t('nav.more')}</span></button></nav>
+    {more && <div className="sheet-bg" onMouseDown={() => setMore(false)}><div className="sheet" role="menu" onMouseDown={(e) => e.stopPropagation()}>{NAV.filter((n) => !TAB_BAR.includes(n.id)).map((n) => item(n.id, 'sheet-item'))}<div className="sheet-sync"><SyncBadge /></div></div></div>}
     {palette && <Palette onPick={pick} onClose={() => setPalette(false)} />}
     <Reminders /><ClipboardWatcher />
   </div>);
