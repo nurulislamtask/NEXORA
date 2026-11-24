@@ -229,4 +229,10 @@ export const bn: Record<keyof typeof en, string> = {
   'pages.block.quote': 'উদ্ধৃতি',
   'pages.block.code': 'কোড',
   'pages.block.divider': 'বিভাজক',
+  'nav.group.plan': 'পরিকল্পনা',
+  'nav.group.capture': 'সংরক্ষণ',
+  'nav.more': 'আরও',
+  'home.summary': 'আজ {n}টি কাজ · {done}টি শেষ',
+  'home.doneToday': 'আজ শেষ',
+  'auth.tagline': 'আপনার অফলাইন-ফার্স্ট ওয়ার্কস্পেস',
 };

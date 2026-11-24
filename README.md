@@ -13,6 +13,18 @@ Works without internet. Syncs between your devices when you sign in. English and
 
 > **Preview software.** Installers and the Android APK are built automatically by GitHub Actions and are **unsigned**. The code is covered by 69 automated tests and compiles on Windows, Linux, macOS and Android, but nobody has yet run the installed app on a real device. The downloadable builds also contain **no cloud backend**, so they run local-only until built with your own Supabase settings (see below). Expect rough edges and please report them. Details: [docs/STATUS.md](docs/STATUS.md).
 
+## A look at it
+
+<p align="center"><img src="docs/screenshots/home.png" width="860" alt="NEXORA home screen with greeting, progress ring, stats and today's tasks" /></p>
+
+| | |
+|---|---|
+| <img src="docs/screenshots/dark.png" alt="Midnight theme" /> | <img src="docs/screenshots/tasks.png" alt="Tasks with priorities and due dates" /> |
+| <img src="docs/screenshots/calendar.png" alt="Calendar, Lavender theme" /> | <img src="docs/screenshots/notes.png" alt="Colour notes, Warm Sand theme" /> |
+| <img src="docs/screenshots/bangla.png" alt="Bangla interface, Ocean theme" /> | <img src="docs/screenshots/mobile.png" width="260" alt="Phone layout with floating tab bar" /> |
+
+*Rendered from the real app code in headless Chrome with sample data (desktop and phone widths, 3 of the 14 themes, English and বাংলা).*
+
 ## Download
 
 Get the newest file from the [Releases page](https://github.com/nurulislamtask/NEXORA/releases) (look for the highest `v0.1.0-preview.N`).
@@ -93,7 +105,7 @@ docs/          architecture, migration notes, honest status
 - Android: sign in again after restart, no sticky-note windows, APK is debug-signed.
 - Google sign-in and password-reset completion are not finished; avatar upload is not implemented.
 - Page blocks are plain text (no bold/italic); calendar weeks start on Sunday; no drag-to-reschedule.
-- No screenshots yet: the project has never been run in an environment where they could be taken. They will be added after the first on-device run.
+- The screenshots above are headless-Chrome renders of the real screens with sample data, not captures from an installed app.
 
 ## Contributing and security
 

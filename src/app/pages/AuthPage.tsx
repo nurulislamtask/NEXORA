@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { AuthFailure } from '../../core/auth/authService.ts';
 import { useAuthGate } from '../runtime.tsx';
 import { useT } from '../i18n.tsx';
+import { Logo } from '../components/ui.tsx';
 
 type Mode = 'login' | 'register' | 'reset';
 export function AuthPage() {
@@ -18,7 +19,7 @@ export function AuthPage() {
   }
   return (
     <div className="center"><form className="card auth" onSubmit={(e) => { void submit(e); }} aria-labelledby="auth-title">
-      <h1 id="auth-title" className="brand">NEXORA</h1><h2>{t(`auth.${mode}`)}</h2>
+      <div className="auth-brand"><Logo size={48} /><h1 id="auth-title" className="brand">NEXORA</h1><p className="sub">{t('auth.tagline')}</p></div><h2>{t(`auth.${mode}`)}</h2>
       {mode === 'register' && <label>{t('auth.name')}<input value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} autoComplete="name" /></label>}
       <label>{t('auth.email')}<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></label>
       {mode !== 'reset' && <label>{t('auth.password')}<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />{mode === 'register' && <small>{t('auth.passwordHint')}</small>}</label>}
